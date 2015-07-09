@@ -53,7 +53,7 @@
 			android:label="@string/app_name" />
 
 		<!-- Add in Facebook App ID -->
-		<!--<meta-data android:name="com.facebook.sdk.ApplicationId" android:value="@string/facebook_app_id"/>-->
+		<meta-data android:name="com.facebook.sdk.ApplicationId" android:value="@string/facebook_app_id"/>
 
 		<!-- Add App name to facebook sdk for access to Share and Invite dialogs-->
 		<meta-data android:name="com.facebook.sdk.ApplicationName" android:value="@string/facebook_app_name"/>
