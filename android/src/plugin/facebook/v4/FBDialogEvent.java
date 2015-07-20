@@ -1,3 +1,10 @@
+//
+//  FBDialogEvent.java
+//  Facebook-v4 Plugin
+//
+//  Copyright (c) 2015 Corona Labs Inc. All rights reserved.
+//
+
 package plugin.facebook.v4;
 
 import com.ansca.corona.CoronaLua;
@@ -6,7 +13,6 @@ import com.ansca.corona.CoronaRuntime;
 
 import com.naef.jnlua.LuaState;
 
-// TODO: Report the moredetail on the status of a dialog
 public class FBDialogEvent extends FBBaseEvent {
 
 	private boolean mDidComplete;

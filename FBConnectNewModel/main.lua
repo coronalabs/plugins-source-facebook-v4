@@ -1,9 +1,9 @@
 -- 
 -- Project: Facebook Connect sample app
 --
--- Date: July 7, 2015
+-- Date: July 14, 2015
 --
--- Version: 1.7
+-- Version: 1.8
 --
 -- File name: main.lua
 --
@@ -28,6 +28,7 @@
 --	v1.5		Added single sign-on support in build.settings (must replace XXXXXXXXX with valid facebook appId)
 --	v1.6		Modified the build.settings file to get the plugin for iOS.
 --  v1.7		Added more buttons to test features. Upgraded sample to use Facebook v4 plguin.
+--  v1.8		Uses new login model introduced in Facebook v4 plugin.
 
 --
 -- Comments:
@@ -124,6 +125,81 @@ end
 
 local statusMessage = createStatusMessage( "   Not connected  ", centerX, StatusMessageY )
 
+-- Runs the desired facebook command
+local function processFBCommand( )
+	-- The following displays a Facebook dialog box for posting to your Facebook Wall
+	if fbCommand == SHOW_FEED_DIALOG then
+
+		-- "feed" is the standard "post status message" dialog
+		local response = facebook.showDialog( "feed", {
+			name = "Test name",
+			description = "Example description.",
+			link = "http://www.coronasdk.com/"
+		})
+		printTable(response)
+	end
+
+	-- This displays a Facebook Dialog for posting a link with a photo to your Facebook Wall
+	if fbCommand == SHOW_FEED_W_PHOTO_DIALOG then
+		-- "feed" is the standard "post status message" dialog
+		local response = facebook.showDialog( "feed", {
+			name = "Composer GUI",
+			link = "http://www.coronalabs.com/links/forum",
+			description = "Corona SDK for developing iOS and Android apps with the same code base.",
+			picture = "https://coronalabs.com/wp-content/uploads/2014/06/ComposerGUI_inside_Panel1010x6002.jpg"
+		})
+		printTable(response)
+	end
+
+	-- This displays a Facebook Dialog for sending game requests to other users
+	if fbCommand == SHOW_REQUEST_DIALOG then
+		-- "feed" is the standard "post status message" dialog
+		local response = facebook.showDialog( "apprequests", {
+			message = "Come check out Facebook's integration into Corona SDK",
+			title = "Send a game request to others"
+		})
+		printTable(response)
+	end
+
+	-- Request the current logged in user's info
+	if fbCommand == GET_USER_INFO then
+		--print ( "Check our permissions" )
+		--local grantedPermissions = facebook.getGrantedPermissions()
+		local response = facebook.request( "me" )
+		printTable(response)
+--			facebook.request( "me/friends" )		-- Alternate request
+	end
+
+	-- This code posts a photo image to your Facebook Wall
+	--
+	if fbCommand == POST_PHOTO then
+		local attachment = {
+			name = "Developing a Facebook Connect app using the Corona SDK!",
+			link = "http://www.coronalabs.com/links/forum",
+			caption = "Link caption",
+			description = "Corona SDK for developing iOS and Android apps with the same code base.",
+			picture = "http://www.coronalabs.com/links/demo/Corona90x90.png",
+			actions = json.encode( { { name = "Learn More", link = "http://coronalabs.com" } } )
+		}
+	
+		local response = facebook.request( "me/feed", "POST", attachment )		-- posting the photo
+		printTable(response)
+	end
+	
+	-- This code posts a message to your Facebook Wall
+	if fbCommand == POST_MSG then
+		local time = os.date("*t")
+		local postMsg = {
+			message = "Posting from Corona SDK! " ..
+				os.date("%A, %B %e")  .. ", " .. time.hour .. ":"
+				.. time.min .. "." .. time.sec
+		}
+	
+		local response = facebook.request( "me/feed", "POST", postMsg )		-- posting the message
+		printTable(response)
+	end
+end
+
 -- New Facebook Connection listener
 --
 local function listener( event )
@@ -152,9 +228,10 @@ local function listener( event )
 	print( "isError: " .. tostring( event.isError ) )
 	print( "didComplete: " .. tostring( event.didComplete) )
 -----------------------------------------------------------------------------------------
-	-- After a successful login event, send the FB command
+	-- Process the response to the FB command
 	-- Note: If the app is already logged in, we will still get a "login" phase
-	--
+-----------------------------------------------------------------------------------------
+
     if ( "session" == event.type ) then
         -- event.phase is one of: "login", "loginFailed", "loginCancelled", "logout"
 		statusMessage.textObject.text = event.phase		-- tjn Added
@@ -164,80 +241,10 @@ local function listener( event )
 		if event.phase ~= "login" then
 			-- Exit if login error
 			return
+		else
+			-- Run the desired command
+			processFBCommand()
 		end
-
-		print( "Facebook Command: " .. fbCommand )
-
-		-- The following displays a Facebook dialog box for posting to your Facebook Wall
-		if fbCommand == SHOW_FEED_DIALOG then
-
-			-- "feed" is the standard "post status message" dialog
-			local response = facebook.showDialog( "feed", {
-				name = "Test name",
-				description = "Example description.",
-				link = "http://www.coronasdk.com/"
-			})
-			printTable(response)
-		end
-
-		-- This displays a Facebook Dialog for posting a link with a photo to your Facebook Wall
-		if fbCommand == SHOW_FEED_W_PHOTO_DIALOG then
-			-- "feed" is the standard "post status message" dialog
-			local response = facebook.showDialog( "feed", {
-				name = "Composer GUI",
-				link = "http://www.coronalabs.com/links/forum",
-				description = "Corona SDK for developing iOS and Android apps with the same code base.",
-				picture = "https://coronalabs.com/wp-content/uploads/2014/06/ComposerGUI_inside_Panel1010x6002.jpg"
-			})
-			printTable(response)
-		end
-
-		-- This displays a Facebook Dialog for sending game requests to other users
-		if fbCommand == SHOW_REQUEST_DIALOG then
-			-- "feed" is the standard "post status message" dialog
-			local response = facebook.showDialog( "apprequests", {
-				message = "Come check out Facebook's integration into Corona SDK",
-				title = "Send a game request to others"
-			})
-			printTable(response)
-		end
-
-		-- Request the current logged in user's info
-		if fbCommand == GET_USER_INFO then
-			local response = facebook.request( "me" )
-			printTable(response)
---			facebook.request( "me/friends" )		-- Alternate request
-		end
-
-		-- This code posts a photo image to your Facebook Wall
-		--
-		if fbCommand == POST_PHOTO then
-			local attachment = {
-				name = "Developing a Facebook Connect app using the Corona SDK!",
-				link = "http://www.coronalabs.com/links/forum",
-				caption = "Link caption",
-				description = "Corona SDK for developing iOS and Android apps with the same code base.",
-				picture = "http://www.coronalabs.com/links/demo/Corona90x90.png",
-				actions = json.encode( { { name = "Learn More", link = "http://coronalabs.com" } } )
-			}
-		
-			local response = facebook.request( "me/feed", "POST", attachment )		-- posting the photo
-			printTable(response)
-		end
-		
-		-- This code posts a message to your Facebook Wall
-		if fbCommand == POST_MSG then
-			local time = os.date("*t")
-			local postMsg = {
-				message = "Posting from Corona SDK! " ..
-					os.date("%A, %B %e")  .. ", " .. time.hour .. ":"
-					.. time.min .. "." .. time.sec
-			}
-		
-			local response = facebook.request( "me/feed", "POST", postMsg )		-- posting the message
-			printTable(response)
-		end
------------------------------------------------------------------------------------------
 
     elseif ( "request" == event.type ) then
         -- event.response is a JSON object from the FB server
@@ -246,6 +253,8 @@ local function listener( event )
 		if ( not event.isError ) then
 	        response = json.decode( event.response )
 	        
+			print( "Facebook Command: " .. fbCommand )
+
 	        if fbCommand == GET_USER_INFO then
 				statusMessage.textObject.text = response.name
 				printTable( response, "User Info", 3 )
@@ -273,62 +282,83 @@ local function listener( event )
 		
 	elseif ( "dialog" == event.type ) then
 		-- showDialog response
-		--
 		print( "dialog response:", event.response )
 		statusMessage.textObject.text = event.response
     end
 end
 
+local function enforceFacebookLogin( )
+	if facebook.isActive then
+		if facebook.currentAccessToken == "" then
+			print( "Need to log in" )
+			facebook.login( {"publish_actions"} )
+		else
+			print( "Already logged in" )
+			statusMessage.textObject.text = "login"
+			processFBCommand()
+		end
+	else
+		print( "Please wait for facebook to finish initializing before checking the current access token" );
+	end
+end
 ---------------------------------------------------------------------------------------------------
 -- NOTE: To create a mobile app that interacts with Facebook Connect, first log into Facebook
 -- and create a new Facebook application. That will give you the "API key" and "application secret".
 ---------------------------------------------------------------------------------------------------
 
-facebook.login( listener )
+print ( "Set our facebook connect event listener" )
+facebook.setFBConnectListener( listener )
+enforceFacebookLogin()
 
 -- ***
 -- ************************ Buttons Functions ********************************
 -- ***
+-- This code posts a photo image to your Facebook Wall
 local function postPhoto_onRelease( event )
 	-- call the login method of the FB session object, passing in a handler
 	-- to be called upon successful login.
 	fbCommand = POST_PHOTO
-	facebook.login( listener,  {"publish_actions"}  )
+	enforceFacebookLogin()
 end
 
+-- Request the current logged in user's info
 local function getInfo_onRelease( event )
 	-- call the login method of the FB session object, passing in a handler
 	-- to be called upon successful login.
 	fbCommand = GET_USER_INFO
-	facebook.login( listener, {"publish_actions"}  )
+	enforceFacebookLogin()
 end
 
+-- This code posts a message to your Facebook Wall
 local function postMsg_onRelease( event )
 	-- call the login method of the FB session object, passing in a handler
 	-- to be called upon successful login.
 	fbCommand = POST_MSG
-	facebook.login( listener, {"publish_actions"} )
+	enforceFacebookLogin()
 end
 
+-- The following displays a Facebook dialog box for posting to your Facebook Wall
 local function showFeedDialog_onRelease( event )
 	-- call the login method of the FB session object, passing in a handler
 	-- to be called upon successful login.
 	fbCommand = SHOW_FEED_DIALOG
-	facebook.login( listener, {"publish_actions"}  )
+	enforceFacebookLogin()
 end
 
+-- This displays a Facebook Dialog for posting a link with a photo to your Facebook Wall
 local function showFeedWPhotoDialog_onRelease( event )
 	-- call the login method of the FB session object, passing in a handler
 	-- to be called upon successful login.
 	fbCommand = SHOW_FEED_W_PHOTO_DIALOG
-	facebook.login( listener, {"publish_actions"}  )
+	enforceFacebookLogin()
 end
 
+-- This displays a Facebook Dialog for sending game requests to other users
 local function showRequestDialog_onRelease( event )
 	-- call the login method of the FB session object, passing in a handler
 	-- to be called upon successful login.
 	fbCommand = SHOW_REQUEST_DIALOG
-	facebook.login( listener, {"publish_actions"}  )
+	enforceFacebookLogin()
 end
 
 local function publishInstall_onRelease( event )

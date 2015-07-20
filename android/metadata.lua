@@ -9,8 +9,6 @@ local metadata =
 			usesPermissions =
 			{
 				"android.permission.INTERNET",
-				-- Needed for Facebook places.
-				"android.permission.ACCESS_FINE_LOCATION",
 			},
 			usesFeatures = {},
 			applicationChildElements =

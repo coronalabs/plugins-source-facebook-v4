@@ -1,8 +1,8 @@
 //
 //  LuaLoader.java
-//  Facebook Plugin
+//  Facebook-v4 Plugin
 //
-//  Copyright (c) 2012 Corona Labs Inc. All rights reserved.
+//  Copyright (c) 2015 Corona Labs Inc. All rights reserved.
 //
 
 package plugin.facebook.v4;
@@ -21,18 +21,18 @@ import com.naef.jnlua.LuaType;
 import com.naef.jnlua.JavaFunction;
 import com.naef.jnlua.NamedJavaFunction;
 
-import java.io.File;
-
+import java.lang.IllegalArgumentException;
+import java.lang.Override;
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.Iterator;
 
 import android.util.Log;
 
 public class LuaLoader implements JavaFunction {
 	private CoronaRuntime mRuntime;
+
+	private static final String APP_ID_ERR_MSG = ": appId is no longer a required argument." +
+			" This argument will be ignored.";
 
 	/**
 	 * Creates a new object for displaying banner ads on the CoronaActivity
@@ -42,7 +42,8 @@ public class LuaLoader implements JavaFunction {
 
 		// Validate.
 		if (activity == null) {
-			throw new IllegalArgumentException("Activity cannot be null.");
+			throw new IllegalArgumentException(
+					"ERROR: LuaLoader()" + FacebookController.NO_ACTIVITY_ERR_MSG);
 		}
 	}
 
@@ -54,18 +55,45 @@ public class LuaLoader implements JavaFunction {
 		mRuntime = CoronaRuntimeProvider.getRuntimeByLuaState(L);
 
 		NamedJavaFunction[] luaFunctions = new NamedJavaFunction[] {
-			new LoginWrapper(),
-			new LogoutWrapper(),
-			new PublishInstallWrapper(),
-			new RequestWrapper(),
-			new ShowDialogWrapper(),
+				//new GetGrantedPermissionsWrapper(), TODO: Finish implementing this
+				new LoginWrapper(),
+				new LogoutWrapper(),
+				new PublishInstallWrapper(),
+				new RequestWrapper(),
+				new SetFBConnectListenerWrapper(),
+				new ShowDialogWrapper(),
 		};
 
 		String libName = L.toString( 1 );
 		L.register(libName, luaFunctions);
 
+		FacebookController.facebookInit(mRuntime);
+
 		return 1;
 	}
+
+	// TODO: Finish implementing this
+//	private class GetGrantedPermissionsWrapper implements NamedJavaFunction {
+//		@Override
+//		public String getName() {
+//			return "getGrantedPermissions";
+//		}
+//
+//		@Override
+//		public int invoke(LuaState L) {
+//			// Have facebook controller refresh the list of permissions and return that in Java form
+//			Set grantedPermissions = FacebookController.getGrantedPermissions();
+//			// Print out permissions for debugging purposes
+//			if (grantedPermissions != null) {
+//				Object[] permissionsArray = grantedPermissions.toArray();
+//				for (int i = 0; i < permissionsArray.length; i++) {
+//					//Log.d("Corona", "Granted Permission[" + i + "]: " + permissionsArray[i]);
+//				}
+//			}
+//			// Convert to Lua Table and return.
+//			return 1;
+//		}
+//	}
 
 	private class LoginWrapper implements NamedJavaFunction {
 		@Override
@@ -75,29 +103,38 @@ public class LuaLoader implements JavaFunction {
 		
 		@Override
 		public int invoke(LuaState L) {
-			int index = 1;
-
-			int listener = CoronaLua.REFNIL;
-			if (CoronaLua.isListener(L, index, "fbconnect")) {
-				Log.d("Corona", "Found a listener to invoke after login finishes");
-				listener = CoronaLua.newRef( L, index );
-			} else {
-				Log.w("Corona", "Please provide a listener when calling facebook.login()");
-				return 0;
-			}
-			index++;
-
+			String methodName = "facebook." + getName() + "()";
 			ArrayList<String> permissions = new ArrayList<String>();
-			if (L.type(index) == LuaType.TABLE) {
-				int arrayLength = L.length(index);
-				for (int i = 1; i <= arrayLength; i++) {
-					L.rawGet(index, i);
-					permissions.add(L.toString(-1));
-					L.pop(1);
+
+			// Parse args if there are any
+			if (L.getTop() != 0) {
+				int index = 1;
+
+				LuaType firstArgType = L.type(index);
+				if (firstArgType == LuaType.STRING || firstArgType == LuaType.NUMBER) {
+					// Warn the user about using deprecated login API
+					Log.v("Corona", "WARNING: " + methodName + APP_ID_ERR_MSG);
+					// Process the remaining arguments
+					index++;
+				}
+
+				if (CoronaLua.isListener(L, index, "fbconnect")) {
+					//Log.d("Corona", "Found a listener to invoke after login finishes");
+					FacebookController.setFBConnectListener(CoronaLua.newRef(L, index));
+					index++;
+				}
+
+				if (L.type(index) == LuaType.TABLE) {
+					int arrayLength = L.length(index);
+					for (int i = 1; i <= arrayLength; i++) {
+						L.rawGet(index, i);
+						permissions.add(L.toString(-1));
+						L.pop(1);
+					}
 				}
 			}
 
-			FacebookController.facebookLogin(mRuntime, listener, permissions.toArray(new String[1]));
+			FacebookController.facebookLogin(permissions.toArray(new String[0]));
 			return 0;
 		}
 	}
@@ -123,6 +160,11 @@ public class LuaLoader implements JavaFunction {
 
 		@Override
 		public int invoke(LuaState L) {
+			String methodName = "facebook." + getName() + "()";
+			if (L.getTop() != 0) {
+				// Warn the user about using deprecated login API
+				Log.v("Corona", "WARNING: " + methodName + APP_ID_ERR_MSG);
+			}
 			FacebookController.publishInstall();
 			return 0;
 		}
@@ -159,8 +201,27 @@ public class LuaLoader implements JavaFunction {
 			}
 			index++;
 
-			FacebookController.facebookRequest(mRuntime, path, method, params);
+			FacebookController.facebookRequest(path, method, params);
 
+			return 0;
+		}
+	}
+
+	private class SetFBConnectListenerWrapper implements NamedJavaFunction {
+		@Override
+		public String getName() {
+			return "setFBConnectListener";
+		}
+
+		@Override
+		public int invoke(LuaState L) {
+			String methodName = "facebook." + getName() + "()";
+			if (CoronaLua.isListener(L, 1, "fbconnect")) {
+				//Log.d("Corona", "Found a FBConnect listener");
+				FacebookController.setFBConnectListener(CoronaLua.newRef(L, 1));
+			} else {
+				Log.v("Corona", "ERROR: " + methodName + ": Please provide a listener.");
+			}
 			return 0;
 		}
 	}
@@ -173,10 +234,6 @@ public class LuaLoader implements JavaFunction {
 
 		@Override
 		public int invoke(LuaState L) {
-			CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
-			if (activity == null) {
-				throw new IllegalArgumentException("Activity cannot be null.");
-			}
 
 			int index = 1;
 
@@ -189,7 +246,7 @@ public class LuaLoader implements JavaFunction {
 			}
 			index++;
 
-			FacebookController.facebookDialog(mRuntime, activity, action, params);
+			FacebookController.facebookDialog(action, params);
 
 			return 0;
 		}

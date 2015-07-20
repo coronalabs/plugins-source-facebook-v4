@@ -90,10 +90,14 @@ function scene:createScene( event )
 			end
 
 			local response = json.decode( event.response )
+			print ("Response from facebook.request(): " .. event.response)
+			print ("Decoded response: " .. response.id)
 
 			if response then
-				storyboard.userData.firstName = response.first_name
-				storyboard.userData.lastName = response.last_name
+				-- Graph API v2.4 no longer provides first and last name responses by default
+				--storyboard.userData.firstName = response.first_name
+				--storyboard.userData.lastName = response.last_name
+				storyboard.userData.name = response.name
 				storyboard.userData.id = response.id
 			end
 		
@@ -115,11 +119,13 @@ function scene:createScene( event )
 			end
 			
 			-- Download the profile picture
-			local path = system.pathForFile( storyboard.userData.firstName .. storyboard.userData.lastName .. storyboard.userData.id .. ".png", system.TemporaryDirectory )
+			--local path = system.pathForFile( storyboard.userData.firstName .. storyboard.userData.lastName .. storyboard.userData.id .. ".png", system.TemporaryDirectory )
+			local path = system.pathForFile( storyboard.userData.name .. storyboard.userData.id .. ".png", system.TemporaryDirectory )
 			local picDownloaded = io.open( path )
 
 			if not picDownloaded then
-				network.download( "http://graph.facebook.com/" .. storyboard.userData.id .. "/picture", "GET", networkListener, storyboard.userData.firstName .. storyboard.userData.lastName .. storyboard.userData.id .. ".png", system.TemporaryDirectory )
+				--network.download( "http://graph.facebook.com/" .. storyboard.userData.id .. "/picture", "GET", networkListener, storyboard.userData.firstName .. storyboard.userData.lastName .. storyboard.userData.id .. ".png", system.TemporaryDirectory )
+				network.download( "http://graph.facebook.com/" .. storyboard.userData.id .. "/picture", "GET", networkListener, storyboard.userData.name .. storyboard.userData.id .. ".png", system.TemporaryDirectory )
 			else
 				loginButton.isVisible = true
 				spinner.isVisible = false

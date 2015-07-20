@@ -1,9 +1,18 @@
+//
+//  FBConnectTask.java
+//  Facebook-v4 Plugin
+//
+//  Copyright (c) 2015 Corona Labs Inc. All rights reserved.
+//
+
 package plugin.facebook.v4;
 
 import com.ansca.corona.CoronaLua;
+import com.ansca.corona.CoronaRuntime;
+import com.ansca.corona.CoronaRuntimeTask;
 import com.naef.jnlua.LuaState;
 
-public class FBConnectTask implements com.ansca.corona.CoronaRuntimeTask {
+public class FBConnectTask implements CoronaRuntimeTask {
 	private static final int SESSION = 0;
 	private static final int SESSION_ERROR= 1;
 	private static final int REQUEST = 2;
@@ -18,7 +27,7 @@ public class FBConnectTask implements com.ansca.corona.CoronaRuntimeTask {
 	private boolean myDidComplete;
 	private boolean myIsDialog;
 
-	FBConnectTask( int listener, FBLoginEvent.Phase phase, String accessToken, long tokenExpiration )
+	FBConnectTask(int listener, FBLoginEvent.Phase phase, String accessToken, long tokenExpiration)
 	{
 		myType = SESSION;
 		myPhase = phase;
@@ -31,7 +40,7 @@ public class FBConnectTask implements com.ansca.corona.CoronaRuntimeTask {
 		myIsDialog = false;
 	}
 
-	FBConnectTask( int listener, String msg )
+	FBConnectTask(int listener, String msg)
 	{
 		myType = SESSION_ERROR;
 		myAccessToken = "";
@@ -41,7 +50,7 @@ public class FBConnectTask implements com.ansca.corona.CoronaRuntimeTask {
 		myIsDialog = false;
 	}
 
-	FBConnectTask( int listener, String msg, boolean isError )
+	FBConnectTask(int listener, String msg, boolean isError)
 	{
 		myType = REQUEST;
 		myAccessToken = "";
@@ -53,7 +62,7 @@ public class FBConnectTask implements com.ansca.corona.CoronaRuntimeTask {
 		myIsDialog = false;
 	}
 
-	FBConnectTask( int listener, String msg, boolean isError, boolean didComplete )
+	FBConnectTask(int listener, String msg, boolean isError, boolean didComplete)
 	{
 		myType = REQUEST;
 		myAccessToken = "";
@@ -66,7 +75,7 @@ public class FBConnectTask implements com.ansca.corona.CoronaRuntimeTask {
 	}
 
 	@Override
-	public void executeUsing(com.ansca.corona.CoronaRuntime runtime) {
+	public void executeUsing(CoronaRuntime runtime) {
 		switch ( myType ) {
 			case SESSION:
 				if (myAccessToken != null) {
@@ -92,9 +101,9 @@ public class FBConnectTask implements com.ansca.corona.CoronaRuntimeTask {
 
 		try {
 			LuaState L = runtime.getLuaState();
-			CoronaLua.dispatchEvent( L, myListener, 0 );
+			CoronaLua.dispatchEvent(L, myListener, 0);
 		} catch (Exception e) {
-
+			e.printStackTrace();
 		}
 	}
 

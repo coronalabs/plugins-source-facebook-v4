@@ -117,13 +117,15 @@ function scene:createScene( event )
 	storyboard.navBarGroup:insert( storyboard.settingsButton )
 	
 	-- Profile Pic
-	local userPicture = display.newImageRect( storyboard.userData.firstName .. storyboard.userData.lastName .. storyboard.userData.id .. ".png", system.TemporaryDirectory, 80, 80 )
+	--local userPicture = display.newImageRect( storyboard.userData.firstName .. storyboard.userData.lastName .. storyboard.userData.id .. ".png", system.TemporaryDirectory, 80, 80 )
+	local userPicture = display.newImageRect( storyboard.userData.name .. storyboard.userData.id .. ".png", system.TemporaryDirectory, 80, 80 )
 	userPicture.x = 20 + userPicture.contentWidth * 0.5
 	userPicture.y = 120
 	group:insert( userPicture )
 	
 	-- User name
-	local userName = display.newText( storyboard.userData.firstName .. " " .. storyboard.userData.lastName, 0, 0, native.systemFont, 16 )
+	--local userName = display.newText( storyboard.userData.firstName .. " " .. storyboard.userData.lastName, 0, 0, native.systemFont, 16 )
+	local userName = display.newText( storyboard.userData.name, 0, 0, native.systemFont, 16 )
 	userName.x = userPicture.x + userPicture.contentWidth * 0.5 + userName.contentWidth * 0.5 + 10
 	userName.y = userPicture.y - userPicture.contentHeight * 0.5 + userName.contentHeight * 0.5
 	userName:setTextColor( 0 )
@@ -132,6 +134,7 @@ function scene:createScene( event )
 	
 	-- Function to execute on completion of friend choice
 	local function onCompleteFriends( event )
+		print ("In onCompleteFriends")
 		local friendsSelected = {}
 	
 		-- If there is event.data print it's key/value pairs
@@ -186,6 +189,7 @@ function scene:createScene( event )
 
 
 	local function onCompletePlaces( event )
+		print ("In onCompletePlaces")
 		if event.data then
 			print( "{" )
 
@@ -277,7 +281,8 @@ function scene:createScene( event )
 				end
 				
 				-- Message to post to the users wall
-				local messageToPost = storyboard.userData.firstName .. " " .. storyboard.userData.lastName
+				--local messageToPost = storyboard.userData.firstName .. " " .. storyboard.userData.lastName
+				local messageToPost = storyboard.userData.name
 				local placeToPost = ""
 				local selectedMeal = postData.eatingUrl
 								

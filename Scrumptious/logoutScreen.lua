@@ -53,13 +53,15 @@ function scene:createScene( event )
 	group:insert( facebookLogo )
 	
 	-- Profile Pic
-	local userPicture = display.newImageRect( storyboard.userData.firstName .. storyboard.userData.lastName .. storyboard.userData.id .. ".png", system.TemporaryDirectory, 80, 80 )
+	--local userPicture = display.newImageRect( storyboard.userData.firstName .. storyboard.userData.lastName .. storyboard.userData.id .. ".png", system.TemporaryDirectory, 80, 80 )
+	local userPicture = display.newImageRect( storyboard.userData.name .. storyboard.userData.id .. ".png", system.TemporaryDirectory, 80, 80 )
 	userPicture.x = display.contentCenterX
 	userPicture.y = display.contentCenterY
 	group:insert( userPicture )
 	
 	-- User name
-	local userName = display.newEmbossedText( storyboard.userData.firstName .. " " .. storyboard.userData.lastName, 0, 0, native.systemFont, 16 )
+	--local userName = display.newEmbossedText( storyboard.userData.firstName .. " " .. storyboard.userData.lastName, 0, 0, native.systemFont, 16 )
+	local userName = display.newEmbossedText( storyboard.userData.name, 0, 0, native.systemFont, 16 )
 	userName.x = userPicture.x
 	userName.y = userPicture.y + userPicture.contentHeight * 0.5 + userName.contentHeight
 	userName:setFillColor( 1 )

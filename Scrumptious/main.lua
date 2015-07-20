@@ -1,9 +1,9 @@
 -- 
 -- Project: Facebook Connect scrumptious sample app
 --
--- Date: March 14, 2013
+-- Date: July 15, 2015
 --
--- Version: 1.0
+-- Version: 1.1
 --
 -- File name: main.lua
 --
@@ -17,6 +17,11 @@
 -- File dependencies: facebook.lua
 --
 -- Target devices: Simulator and Device (iOS only)
+
+-- Revision history:
+--  v1.0: Initial version
+--  v1.1: Upgraded to facebook-v4 plugin
+--		  Upgraded responses from facebook.request() to be compliant with Facebook Graph API v2.4 defaults.
 
 --
 -- Comments:

@@ -1,3 +1,10 @@
+//
+//  FBRequestEvent.java
+//  Facebook-v4 Plugin
+//
+//  Copyright (c) 2015 Corona Labs Inc. All rights reserved.
+//
+
 package plugin.facebook.v4;
 
 import com.ansca.corona.CoronaLua;
