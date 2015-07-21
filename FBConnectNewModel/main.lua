@@ -131,11 +131,7 @@ local function processFBCommand( )
 	if fbCommand == SHOW_FEED_DIALOG then
 
 		-- "feed" is the standard "post status message" dialog
-		local response = facebook.showDialog( "feed", {
-			name = "Test name",
-			description = "Example description.",
-			link = "http://www.coronasdk.com/"
-		})
+		local response = facebook.showDialog( "feed" )
 		printTable(response)
 	end
 

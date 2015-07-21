@@ -947,7 +947,7 @@ public class FacebookController {
      *       SharePhoto only works with Facebook app according to:
      *       http://stackoverflow.com/questions/30843786/sharing-photo-using-facebook-sdk-4-2-0
      * TODO: Support batches of photos of each type
-     * TODO: null check params cleanly and consistent error handling like other APIs
+     * TODO: consistent error handling like other APIs
      */
     public static void facebookDialog( final String action, final Hashtable params ) {
 
@@ -991,16 +991,20 @@ public class FacebookController {
                         linkUri = Uri.parse(contentUrl);
                     }
 
-                    String photoUrl = (String) params.get("picture");
+                    String photoUrl = params != null ? (String) params.get("picture") : null;
                     Uri photoUri = null;
                     if (photoUrl != null) {
                         photoUri = Uri.parse(photoUrl);
                     }
 
+                    // Grab remaining link data
+                    String description = params != null ? (String) params.get("description") : null;
+                    String name = params != null ? (String) params.get("name") : null;
+
                     // Set up the dialog to share this link
                     ShareLinkContent linkContent = new ShareLinkContent.Builder()
-                            .setContentDescription((String) params.get("description"))
-                            .setContentTitle((String) params.get("name"))
+                            .setContentDescription(description)
+                            .setContentTitle(name)
                             .setImageUrl(photoUri)
                             .setContentUrl(linkUri)
                             .setPeopleIds(peopleIds)
@@ -1010,18 +1014,30 @@ public class FacebookController {
 
                     sShareDialog.show(linkContent, ShareDialog.Mode.FEED);
                 } else if (action.equals("requests") || action.equals("apprequests")) {
+
+                    // Grab game request-specific data
+                    String message = params != null ? (String) params.get("message") : null;
+                    String to = params != null ? (String) params.get("to") : null;
+                    String data = params != null ? (String) params.get("data") : null;
+                    String title = params != null ? (String) params.get("title") : null;
+                    ActionType actiontype =
+                            params != null ? (ActionType) params.get("actiontype") : null;
+                    String objectid = params != null ? (String) params.get("objectid") : null;
+                    Filters filters = params != null ? (Filters) params.get("filters") : null;
+                    ArrayList<String> suggestions =
+                            params != null ? (ArrayList<String>) params.get("suggestions") : null;
+
                     // Create a game request dialog
                     // ONLY WORKS IF YOUR APP IS CATEGORIZED AS A GAME IN FACEBOOK DEV PORTAL
-                    // TODO: ENSURE DOCUMENTATION MENTIONS THIS
                     GameRequestContent requestContent = new GameRequestContent.Builder()
-                            .setMessage((String) params.get("message"))
-                            .setTo((String) params.get("to"))
-                            .setData((String) params.get("data"))
-                            .setTitle((String) params.get("title"))
-                            .setActionType((ActionType) params.get("actiontype"))
-                            .setObjectId((String) params.get("objectid"))
-                            .setFilters((Filters) params.get("filters"))
-                            .setSuggestions((ArrayList<String>) params.get("suggestions"))
+                            .setMessage(message)
+                            .setTo(to)
+                            .setData(data)
+                            .setTitle(title)
+                            .setActionType(actiontype)
+                            .setObjectId(objectid)
+                            .setFilters(filters)
+                            .setSuggestions(suggestions)
                             .build();
 
                     sRequestDialog.show(requestContent);
