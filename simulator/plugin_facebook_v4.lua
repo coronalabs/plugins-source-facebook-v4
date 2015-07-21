@@ -15,5 +15,10 @@ lib.showDialog = defaultFunction
 lib.publishInstall = defaultFunction
 lib.accessDenied = defaultFunction
 
+-- New Facebook-v4 APIs
+lib.currentAccessToken = defaultFunction
+lib.isActive = defaultFunction
+lib.setFBConnectListener= defaultFunction
+
 -- Return an instance
 return lib
