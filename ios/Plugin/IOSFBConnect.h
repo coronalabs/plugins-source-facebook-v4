@@ -13,6 +13,7 @@
 
 #include "CoronaLua.h"
 #include "FBConnect.h"
+#include "FBConnectEvent.h"
 
 #import <UIKit/UIKit.h>
 #import <AddressBook/AddressBook.h>
@@ -21,7 +22,8 @@
 // ----------------------------------------------------------------------------
 
 @class Facebook;
-@class FBSession;
+// Facebook SDK 3.19
+//@class FBSession;
 @class IOSFBConnectDelegate;
 @class NSArray;
 @class NSError;
@@ -53,16 +55,15 @@ class IOSFBConnect : public FBConnect
 		bool Initialize( NSString *appId );
 
 	protected:
-		void SessionChanged( FBSession *session, int state, NSError *error ) const;
-		void ReauthorizationCompleted( FBSession *session, NSError *error ) const;
+		// Facebook SDK 4+
+		void LoginStateChanged( FBConnectLoginEvent::Phase state, NSError *error ) const;
+		void ReauthorizationCompleted( NSError *error ) const;
+	// Facebook SDK 3.19
+//		void SessionChanged( FBSession *session, int state, NSError *error ) const;
+//		void ReauthorizationCompleted( FBSession *session, NSError *error ) const;
 
 	public:
 		void Dispatch( const FBConnectEvent& e ) const;
-
-	public:
-		virtual bool Open( const char *url ) const;
-		virtual void Resume() const;
-		virtual void Close() const;
 
 	public:
 		virtual void Login( const char *appId, const char *permissions[], int numPermissions ) const;

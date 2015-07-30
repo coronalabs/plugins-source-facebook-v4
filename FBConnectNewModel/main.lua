@@ -27,7 +27,7 @@
 --  v1.4		Added  ...{"publish_stream"} .. permissions setting to facebook.login() calls.
 --	v1.5		Added single sign-on support in build.settings (must replace XXXXXXXXX with valid facebook appId)
 --	v1.6		Modified the build.settings file to get the plugin for iOS.
---  v1.7		Added more buttons to test features. Upgraded sample to use Facebook v4 plguin.
+--  v1.7		Added more buttons to test features. Upgraded sample to use Facebook v4 plugin.
 --  v1.8		Uses new login model introduced in Facebook v4 plugin.
 
 --

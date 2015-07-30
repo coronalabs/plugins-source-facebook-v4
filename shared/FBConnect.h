@@ -32,9 +32,6 @@ class FBConnect
 		static FBConnect *New( lua_State *L );
 		static void Delete( FBConnect *instance );
 
-	public:
-		static int SystemEventListener( lua_State *L );
-
 	protected:
 		FBConnect();
 		virtual ~FBConnect();
@@ -45,11 +42,6 @@ class FBConnect
 
 	protected:
 		CoronaLuaRef GetListener() const { return fListener; }
-
-	public:
-		virtual bool Open( const char *url ) const;
-		virtual void Resume() const;
-		virtual void Close() const;
 
 	public:
 		virtual void Login( const char *appId, const char *permissions[], int numPermissions ) const = 0;

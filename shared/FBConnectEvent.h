@@ -62,7 +62,7 @@ class FBConnectEvent
 		bool fIsError;
 };
 
-class FBConnectSessionEvent : public FBConnectEvent
+class FBConnectLoginEvent : public FBConnectEvent
 {
 	public:
 		typedef FBConnectEvent Super;
@@ -82,8 +82,8 @@ class FBConnectSessionEvent : public FBConnectEvent
 		static const char *StringForPhase( Phase phase );
 
 	public:
-		FBConnectSessionEvent( const char *token, time_t tokenExpiration ); // For kLogin phase (token should be available on successful login)
-		FBConnectSessionEvent( Phase phase, const char *errorMsg );
+		FBConnectLoginEvent( const char *token, time_t tokenExpiration ); // For kLogin phase (token should be available on successful login)
+		FBConnectLoginEvent( Phase phase, const char *errorMsg );
 
 	protected:
 		virtual void Push( lua_State *L ) const;

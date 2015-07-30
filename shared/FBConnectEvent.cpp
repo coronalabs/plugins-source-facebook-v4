@@ -105,7 +105,7 @@ FBConnectEvent::Push( lua_State *L ) const
 // ----------------------------------------------------------------------------
 
 const char *
-FBConnectSessionEvent::StringForPhase( Phase phase )
+FBConnectLoginEvent::StringForPhase( Phase phase )
 {
 	const char *result = NULL;
 	static const char kLoginString[] = "login";
@@ -135,7 +135,7 @@ FBConnectSessionEvent::StringForPhase( Phase phase )
 	return result;
 }
 
-FBConnectSessionEvent::FBConnectSessionEvent( const char *token, time_t tokenExpiration )
+FBConnectLoginEvent::FBConnectLoginEvent( const char *token, time_t tokenExpiration )
 :	Super( Super::kSessionType ),
 	fPhase( kLogin ),
 	fToken( token ),
@@ -143,7 +143,7 @@ FBConnectSessionEvent::FBConnectSessionEvent( const char *token, time_t tokenExp
 {
 }
 
-FBConnectSessionEvent::FBConnectSessionEvent( Phase phase, const char *errorMsg )
+FBConnectLoginEvent::FBConnectLoginEvent( Phase phase, const char *errorMsg )
 :	Super( Super::kSessionType, errorMsg, ( NULL != errorMsg ) ),
 	fPhase( phase ),
 	fToken( NULL ),
@@ -152,7 +152,7 @@ FBConnectSessionEvent::FBConnectSessionEvent( Phase phase, const char *errorMsg 
 }
 
 void
-FBConnectSessionEvent::Push( lua_State *L ) const
+FBConnectLoginEvent::Push( lua_State *L ) const
 {
 	Super::Push( L ); CORONA_ASSERT( lua_istable( L, -1 ) );
 

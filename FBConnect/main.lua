@@ -27,7 +27,7 @@
 --  v1.4		Added  ...{"publish_stream"} .. permissions setting to facebook.login() calls.
 --	v1.5		Added single sign-on support in build.settings (must replace XXXXXXXXX with valid facebook appId)
 --	v1.6		Modified the build.settings file to get the plugin for iOS.
---  v1.7		Added more buttons to test features. Upgraded sample to use Facebook v4 plguin.
+--  v1.7		Added more buttons to test features. Upgraded sample to use Facebook v4 plugin.
 
 --
 -- Comments:
@@ -59,7 +59,7 @@ local json = require("json")
 display.setStatusBar( display.HiddenStatusBar )
 	
 -- Facebook Commands
-local fbCommand			-- forward reference
+local fbCommand	= nil	-- forward reference
 local LOGOUT = 1
 local SHOW_FEED_DIALOG = 2
 local SHOW_FEED_W_PHOTO_DIALOG = 3
@@ -166,7 +166,11 @@ local function listener( event )
 			return
 		end
 
-		print( "Facebook Command: " .. fbCommand )
+		if fbCommand then
+			print( "Facebook Command: " .. fbCommand )
+		else
+			print( "No command to execute" )
+		end
 
 		-- The following displays a Facebook dialog box for posting to your Facebook Wall
 		if fbCommand == SHOW_FEED_DIALOG then
@@ -281,10 +285,17 @@ end
 
 ---------------------------------------------------------------------------------------------------
 -- NOTE: To create a mobile app that interacts with Facebook Connect, first log into Facebook
--- and create a new Facebook application. That will give you the "API key" and "application secret".
+-- and create a new Facebook application. That will give you the "API key" and "application secret" 
+-- that should be used in the following lines:
+
+local appId = 1435768153407403 	-- Add  your App ID here (also go into build.settings and replace XXXXXXXXX with your appId under CFBundleURLSchemes)
+local apiKey = nil	-- Not needed at this time
 ---------------------------------------------------------------------------------------------------
 
-facebook.login( listener )
+
+-- NOTE: You must provide a valid application id provided from Facebook
+
+facebook.login( appId, listener )
 
 -- ***
 -- ************************ Buttons Functions ********************************
@@ -293,42 +304,42 @@ local function postPhoto_onRelease( event )
 	-- call the login method of the FB session object, passing in a handler
 	-- to be called upon successful login.
 	fbCommand = POST_PHOTO
-	facebook.login( listener,  {"publish_actions"}  )
+	facebook.login( appId, listener,  {"publish_actions", "rsvp_event", "user_about_me"}  )
 end
 
 local function getInfo_onRelease( event )
 	-- call the login method of the FB session object, passing in a handler
 	-- to be called upon successful login.
 	fbCommand = GET_USER_INFO
-	facebook.login( listener, {"publish_actions"}  )
+	facebook.login( appId, listener, {"publish_actions"}  )
 end
 
 local function postMsg_onRelease( event )
 	-- call the login method of the FB session object, passing in a handler
 	-- to be called upon successful login.
 	fbCommand = POST_MSG
-	facebook.login( listener, {"publish_actions"} )
+	facebook.login( appId, listener, {"publish_actions"} )
 end
 
 local function showFeedDialog_onRelease( event )
 	-- call the login method of the FB session object, passing in a handler
 	-- to be called upon successful login.
 	fbCommand = SHOW_FEED_DIALOG
-	facebook.login( listener, {"publish_actions"}  )
+	facebook.login( appId, listener, {"publish_actions"}  )
 end
 
 local function showFeedWPhotoDialog_onRelease( event )
 	-- call the login method of the FB session object, passing in a handler
 	-- to be called upon successful login.
 	fbCommand = SHOW_FEED_W_PHOTO_DIALOG
-	facebook.login( listener, {"publish_actions"}  )
+	facebook.login( appId, listener, {"publish_actions"}  )
 end
 
 local function showRequestDialog_onRelease( event )
 	-- call the login method of the FB session object, passing in a handler
 	-- to be called upon successful login.
 	fbCommand = SHOW_REQUEST_DIALOG
-	facebook.login( listener, {"publish_actions"}  )
+	facebook.login( appId, listener, {"publish_actions"}  )
 end
 
 local function publishInstall_onRelease( event )
@@ -340,6 +351,7 @@ local function logOut_onRelease( event )
 	-- call the login method of the FB session object, passing in a handler
 	-- to be called upon successful login.
 	fbCommand = LOGOUT
+	print("Hit the logout button")
 	facebook.logout()
 end
 

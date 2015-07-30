@@ -1,7 +1,7 @@
 // ----------------------------------------------------------------------------
 // 
 // FacebookLibrary.cpp
-// Copyright (c) 2013 Corona Labs Inc. All rights reserved.
+// Copyright (c) 2015 Corona Labs Inc. All rights reserved.
 // 
 // ----------------------------------------------------------------------------
 
@@ -51,10 +51,10 @@ class FacebookLibrary
 	public:
 		static int login( lua_State *L );
 		static int logout( lua_State *L );
-		static int request( lua_State *L );
-		static int showDialog( lua_State *L );
-		static int show( lua_State *L );
 		static int publishInstall( lua_State *L );
+		static int request( lua_State *L );
+		static int setFBConnectListener( lua_State *L );
+		static int showDialog( lua_State *L );
 
 	private:
 		static int ValueForKey( lua_State *L );
@@ -63,22 +63,8 @@ class FacebookLibrary
 
 // ----------------------------------------------------------------------------
 
-} // namespace Corona
-
-// ----------------------------------------------------------------------------
-
-
-
-
-// ----------------------------------------------------------------------------
-
-namespace Corona
-{
-
-// ----------------------------------------------------------------------------
-
 // This corresponds to the name of the library, e.g. [Lua] require "plugin.library"
-const char FacebookLibrary::kName[] = "facebook";
+const char FacebookLibrary::kName[] = "plugin.facebook.v4";
 
 // This corresponds to the event name, e.g. [Lua] event.name
 const char FacebookLibrary::kEvent[] = "fbconnect";
@@ -125,9 +111,10 @@ FacebookLibrary::Open( lua_State *L )
 	{
 		{ "login", login },
 		{ "logout", logout },
-		{ "request", request },
-		{ "showDialog", showDialog },
 		{ "publishInstall", publishInstall },
+		{ "request", request },
+		{ "setFBConnectListener", setFBConnectListener },
+		{ "showDialog", showDialog },
 
 		{ NULL, NULL }
 	};
@@ -140,30 +127,6 @@ FacebookLibrary::Open( lua_State *L )
 	CoronaLuaPushUserdata( L, library, kMetatableName );
 	lua_pushstring( L, kMetatableName );
 	lua_settable( L, LUA_REGISTRYINDEX );
-
-	// Does the equivalent of the following Lua code:
-	//   Runtime:addEventListener( "system", ProcessSystemEvent )
-	// which is equivalent to:
-	//   local f = Runtime.addEventListener
-	//   f( Runtime, "system", ProcessSystemEvent )
-	CoronaLuaPushRuntime( L ); // push 'Runtime'
-	lua_getfield( L, -1, "addEventListener" ); // push 'f', i.e. Runtime.addEventListener
-	lua_insert( L, -2 ); // swap so 'f' is below 'Runtime'
-	lua_pushstring( L, "system" );
-
-	// Push SystemEventListener as closure so it has access to 'fFBConnect'
-	lua_pushlightuserdata( L, library->GetFBConnect() ); // Assumes fFBConnect lives for lifetime of plugin
-	lua_pushcclosure( L, & FBConnect::SystemEventListener, 1 );
-
-	// Lua stack order (from lowest index to highest):
-	// f
-	// Runtime
-	// "system"
-	// ProcessSystemEvent (closure)
-	CoronaLuaDoCall( L, 3, 0 );
-	CoronaLuaPushRuntime( L );
-	lua_getfield( L, -1, "addEventListener" );
-	
 
 	// Leave "library" on top of stack
 	// Set library as upvalue for each library function
@@ -201,7 +164,8 @@ FacebookLibrary::ToLibrary( lua_State *L )
 int
 FacebookLibrary::login( lua_State *L )
 {
-	if ( LUA_TNUMBER == lua_type( L, 1 ) )
+	int firstArgType = lua_type( L, 1 );
+	if ( LUA_TSTRING == firstArgType || LUA_TNUMBER == firstArgType )
 	{
 		const char *appId = lua_tostring( L, 1 );
 
@@ -209,7 +173,7 @@ FacebookLibrary::login( lua_State *L )
 		int numPermissions = 0;
 		if ( lua_istable( L, 3 ) )
 		{
-			numPermissions = lua_objlen( L, 3 );
+			numPermissions = (int)lua_objlen( L, 3 );
 			permissions = (const char **)malloc( sizeof( char*) * numPermissions );
 
 			for ( int i = 0; i < numPermissions; i++ )
@@ -264,6 +228,30 @@ FacebookLibrary::logout( lua_State *L )
 	return 0;
 }
 
+// [Lua] facebook.publishInstall()
+int
+FacebookLibrary::publishInstall( lua_State *L )
+{
+	if ( LUA_TSTRING == lua_type( L, 1 ) )
+	{
+		const char *appId = lua_tostring( L, 1 );
+		
+		if ( appId )
+		{
+			Self *library = ToLibrary( L );
+			FBConnect *connect = library->GetFBConnect();
+			
+			connect->PublishInstall( appId );
+		}
+	}
+	else
+	{
+		CORONA_LOG_ERROR( "First argument to facebook.publishInstall() should be a string." );
+	}
+	
+	return 0;
+}
+	
 // [Lua] facebook.request( path [, httpMethod, params] )
 int
 FacebookLibrary::request( lua_State *L )
@@ -278,6 +266,13 @@ FacebookLibrary::request( lua_State *L )
 	return 0;
 }
 
+// [Lua] facebook.setFBConnectListener( listener )
+int
+FacebookLibrary::setFBConnectListener( lua_State *L )
+{
+	return 0;
+}
+
 // [Lua] facebook.showDialog( action [, params] )
 int
 FacebookLibrary::showDialog( lua_State *L )
@@ -289,29 +284,6 @@ FacebookLibrary::showDialog( lua_State *L )
 
 	return 0;
 }
-
-int
-FacebookLibrary::publishInstall( lua_State *L )
-{
-    if ( LUA_TSTRING == lua_type( L, 1 ) )
-	{
-		const char *appId = lua_tostring( L, 1 );
-        
-		if ( appId )
-		{
-			Self *library = ToLibrary( L );
-			FBConnect *connect = library->GetFBConnect();
-			
-			connect->PublishInstall( appId );
-		}
-	}
-	else
-	{
-		CORONA_LOG_ERROR( "First argument to facebook.publishInstall() should be a string." );
-	}
-    
-    return 0;
-}
     
 // ----------------------------------------------------------------------------
 
@@ -319,7 +291,7 @@ FacebookLibrary::publishInstall( lua_State *L )
 
 // ----------------------------------------------------------------------------
 
-CORONA_EXPORT int luaopen_facebook( lua_State *L )
+CORONA_EXPORT int luaopen_plugin_facebook_v4( lua_State *L )
 {
 	return Corona::FacebookLibrary::Open( L );
 }

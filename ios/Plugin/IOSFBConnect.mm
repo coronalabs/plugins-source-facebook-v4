@@ -10,7 +10,6 @@
 
 #include "IOSFBConnect.h"
 
-#include "FBConnectEvent.h"
 #include "CoronaAssert.h"
 #include "CoronaLua.h"
 #include "CoronaVersion.h"
@@ -195,81 +194,6 @@ FBConnect::Delete( FBConnect *instance )
 
 // ----------------------------------------------------------------------------
 
-static NSString *
-GetUrlScheme()
-{
-	NSString *result = nil;
-
-	id value = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleURLTypes"];
-	if ( [value isKindOfClass:[NSArray class]] )
-	{
-		NSString *prefix = @"fb";
-
-		for ( id item in value )
-		{
-			if ( [item isKindOfClass:[NSDictionary class]] )
-			{
-				NSArray *schemes = [item objectForKey:@"CFBundleURLSchemes"];
-				if ( [schemes isKindOfClass:[NSArray class]] )
-				{
-					for ( id o in schemes )
-					{
-						if ( [o isKindOfClass:[NSString class]] )
-						{
-							// TODO: We should use a regular expression of the form: "fb[0-9]+\\w*"
-							NSString *str = (NSString*)o;
-							if ( [str hasPrefix:prefix] )
-							{
-								result = str;
-								goto exit_gracefully;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-exit_gracefully:
-	return result;
-}
-
-static NSString *
-GetAppId( NSString *scheme )
-{
-	NSString *result = nil;
-
-	if ( scheme )
-	{
-		NSRegularExpression *regEx = [NSRegularExpression regularExpressionWithPattern:@"fb([0-9]+)\\w*" options:0 error:NULL];
-		NSTextCheckingResult *match = [regEx firstMatchInString:scheme options:0 range:NSMakeRange( 0, [scheme length] )];
-		NSRange r = [match rangeAtIndex:1]; // want the capture in parens, 0 is index for entire match
-
-		if ( NSNotFound != r.location )
-		{
-			result = [scheme substringWithRange:r];
-		}
-	}
-
-	return result;
-}
-
-static NSString *
-GetUrlSchemeSuffix( NSString *scheme, NSString *appId )
-{
-	NSString *prefix = [NSString stringWithFormat:@"fb%@", appId];
-
-	// We only want the suffix
-	NSString *result = nil;
-	if ( [scheme length] > [prefix length] )
-	{
-		result = [scheme substringFromIndex:[prefix length]];
-	}
-	return result;
-}
-
-// ----------------------------------------------------------------------------
-
 IOSFBConnect::IOSFBConnect( id< CoronaRuntime > runtime )
 :	Super(),
 	fRuntime( runtime ),
@@ -295,10 +219,59 @@ IOSFBConnect::~IOSFBConnect()
 	[fFacebook release];
 }
 
+// Facebook SDK 4+
 bool
 IOSFBConnect::Initialize( NSString *appId )
 {
-		// Facebook SDK 3.19
+	FBSDKAccessToken *accessToken = [FBSDKAccessToken currentAccessToken];
+	if ( accessToken.appID )
+	{
+		// Facebook wants us to add a POST so they can track which FB-enabled
+		// apps use Corona:
+		//
+		//	HTTP POST to:
+		//	https://www.facebook.com/impression.php
+		//	Parameters:
+		//	plugin = "featured_resources"
+		//	payload = <JSON_ENCODED_DATA>
+		//
+		//	JSON_ENCODED_DATA
+		//	resource "coronalabs_coronasdk"
+		//	appid (Facebook app ID)
+		//	version (This is whatever versioning string you attribute to your resource.)
+		//
+		CORONA_ASSERT( nil == appId || [appId isEqualToString:accessToken.appID] );
+
+		NSString *format = @"{\"version\":\"%@\",\"resource\":\"coronalabs_coronasdk\",\"appid\":\"%@\"}";
+		NSString *version = [NSString stringWithUTF8String:CoronaVersionBuildString()];
+		NSString *json = [NSString stringWithFormat:format, version, accessToken.appID];
+		NSString *post = [NSString stringWithFormat:@"plugin=featured_resources&payload=%@", json];
+		NSString *postEscaped = [post stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+		NSData *postData = [postEscaped dataUsingEncoding:NSUTF8StringEncoding];
+
+		NSString *postLength = [NSString stringWithFormat:@"%ld", (unsigned long)[postData length]];
+
+		NSMutableURLRequest *request = [[[NSMutableURLRequest alloc] init] autorelease];
+		NSURL *url = [NSURL URLWithString:@"https://www.facebook.com/impression.php"];
+		[request setURL:url];
+		[request setHTTPMethod:@"POST"];
+		[request setValue:postLength forHTTPHeaderField:@"Content-Length"];
+		[request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
+		[request setTimeoutInterval:30];
+		[request setHTTPBody:postData];
+
+		NSURLConnection *connection = [[NSURLConnection alloc] initWithRequest:request delegate:fConnectionDelegate];
+		[connection start];
+		[connection autorelease];
+	}
+
+	return ( nil != accessToken );
+}
+
+// Facebook SDK 3.19
+//	bool
+//	IOSFBConnect::Initialize( NSString *appId )
+//	{
 //	fSession = FBSession.activeSession;
 //	
 //	if ( fSession.appID )
@@ -343,74 +316,54 @@ IOSFBConnect::Initialize( NSString *appId )
 //	}
 //
 //	return ( nil != fSession );
-/*
-	NSString *scheme = GetUrlScheme();
-	NSString *message = nil;
+//	}
 
-///	if ( ! fFacebook )
+// Facebook SDK 4+
+void
+IOSFBConnect::LoginStateChanged( FBConnectLoginEvent::Phase state, NSError *error ) const
+{
+	switch ( state )
 	{
-		if ( ! appId )
+		case FBConnectLoginEvent::kLogin:
 		{
-			appId = GetAppId( scheme );
+			FBSDKAccessToken *accessToken = [FBSDKAccessToken currentAccessToken];
+			const_cast< Self * >( this )->Initialize( accessToken.appID );
+
+			// Handle the logged in scenario
+			// You may wish to show a logged in view
+			NSString *token = accessToken.tokenString;
+			NSDate *expiration = accessToken.expirationDate;
+			FBConnectLoginEvent e( [token UTF8String], [expiration timeIntervalSince1970] );
+			Dispatch( e );
+			break;
 		}
 
-		if ( CORONA_VERIFY( appId ) )
+		case FBConnectLoginEvent::kLoginCancelled:
+		case FBConnectLoginEvent::kLogout:
 		{
-			NSString *urlSchemeSuffix = GetUrlSchemeSuffix( scheme, appId );
-
-			if ( urlSchemeSuffix )
-			{
-				fFacebook = [[Facebook alloc] initWithAppId:appId urlSchemeSuffix:urlSchemeSuffix andDelegate:fDelegate];
-			}
-			else
-			{
-				fFacebook = [[Facebook alloc] initWithAppId:appId andDelegate:fDelegate];
-			}
-
-			fAppId = [appId copy];
-
-			fFacebook.sessionDelegate = fDelegate;
+			FBConnectLoginEvent e( state, NULL );
+			Dispatch( e );
+			break;
 		}
-		else
+
+		case FBConnectLoginEvent::kLoginFailed:
 		{
-			message = [NSString stringWithFormat:@"Facebook could not be initialized. No valid appId was found."];
+			FBConnectLoginEvent e( state, [[error localizedDescription] UTF8String] );
+			Dispatch( e );
+			break;
 		}
-	}
-	else if ( appId )
-	{
-		if ( ! Rtt_VERIFY( [appId isEqualToString:fAppId] ) )
+
+		default:
 		{
-			scheme = ( scheme ? scheme : @"" );
-			message = [NSString stringWithFormat:@"Facebook appId(%@) does not match the URL scheme in Info.plist(%@)", appId, scheme];
+			break;
 		}
 	}
 
-	if ( message )
+	if (error)
 	{
-		UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"Error"
-							message:message
-							delegate:nil
-							cancelButtonTitle:@"OK"
-							otherButtonTitles:nil];
-		[alertView show];
-		[alertView autorelease];
+		// TODO: Handle authentication errors
 	}
-	else
-	{
-///		NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-///		if ( [defaults objectForKey:@"FBAccessTokenKey"]
-///			 && [defaults objectForKey:@"FBExpirationDateKey"] )
-///		{
-///			fFacebook.accessToken = [defaults objectForKey:@"FBAccessTokenKey"];
-///			fFacebook.expirationDate = [defaults objectForKey:@"FBExpirationDateKey"];
-///		}
-	}
-
-	return ( nil != fFacebook );
-*/
 }
-	// Facebook SDK 4+
-	// TODO: Replace with onAccessTokenChanged()
 	// Facebook SDK 3.19
 //void
 //IOSFBConnect::SessionChanged( FBSession *session, int state, NSError *error ) const
@@ -458,15 +411,25 @@ IOSFBConnect::Initialize( NSString *appId )
 //	}
 //}
 
+// Facebook SDK 4+
 void
-IOSFBConnect::ReauthorizationCompleted( FBSession *session, NSError *error ) const
+IOSFBConnect::ReauthorizationCompleted( NSError *error ) const
 {
 	// TODO: We need a new event type ("permission") that lets them know
 	// if they succeeded to get the permission.
-	
-	// Facebook SDK 3.19
-	//SessionChanged( fSession, ( error ? FBSessionStateClosedLoginFailed : FBSessionStateOpen ), error );
+	LoginStateChanged( ( error ? FBConnectLoginEvent::kLoginFailed : FBConnectLoginEvent::kLogin ), error );
 }
+
+// Facebook SDK 3.19
+//	void
+//	IOSFBConnect::ReauthorizationCompleted( FBSession *session, NSError *error ) const
+//	{
+//		// TODO: We need a new event type ("permission") that lets them know
+//		// if they succeeded to get the permission.
+//		
+//		// Facebook SDK 3.19
+//		//SessionChanged( fSession, ( error ? FBSessionStateClosedLoginFailed : FBSessionStateOpen ), error );
+//	}
 
 void
 IOSFBConnect::Dispatch( const FBConnectEvent& e ) const
@@ -474,58 +437,10 @@ IOSFBConnect::Dispatch( const FBConnectEvent& e ) const
 	e.Dispatch( fRuntime.L, GetListener() );
 }
 
-bool
-IOSFBConnect::Open( const char *url ) const
-{
-	bool result = false;
-
-	NSString *s = [NSString stringWithUTF8String:url];
-	if ( [s hasPrefix:@"fb"] )
-	{
-		NSString *regEx = @"fb([0-9]+)";
-		NSRange r = [s rangeOfString:regEx options:NSRegularExpressionSearch];
-
-		if ( NSNotFound != r.location )
-		{
-			if ( const_cast< Self * >( this )->Initialize( nil ) )
-			{
-				NSURL *nsUrl = [NSURL URLWithString:s];
-				// Facebook SDK 3.19
-//				result = [fSession handleOpenURL:nsUrl];
-			}
-		}
-	}
-
-	return result;
-}
-
-void
-IOSFBConnect::Resume() const
-{
-	// Facebook SDK 3.19
-//	try {
-//		[FBSession.activeSession handleDidBecomeActive];
-//	} catch (NSException *e) {
-//		NSLog(@"%@", e.reason);
-//	}
-}
-
-void
-IOSFBConnect::Close() const
-{
-	// Facebook SDK 3.19
-//	[FBSession.activeSession close];
-}
-	
+// TODO: Merge with isActive flag introduced on Android in a logcal way since isActive won't apply to iOS.
 bool
 IOSFBConnect::IsAccessDenied() const
 {
-	// The constant was introduced in iOS 6 and there is not such setting on iOS 5.
-	if ( &ACAccountTypeIdentifierFacebook == NULL )
-	{
-		return false;
-	}
-	
 	ACAccountStore *accountStore = [[ACAccountStore alloc] init];
 	ACAccountType *accountType = [accountStore accountTypeWithAccountTypeIdentifier:ACAccountTypeIdentifierFacebook];
 	[accountStore release];
@@ -546,7 +461,7 @@ IOSFBConnect::Login( const char *appId, const char *permissions[], int numPermis
 		for ( int i = 0; i < numPermissions; i++ )
 		{
 			NSString *str = [[NSString alloc] initWithUTF8String:permissions[i]];
-			// Don't request the permission again if the session already has it
+			// Don't request the permission again if the accessToken already has it
 			// Facebook SDK 4+
 			if ( ( accessToken && ![accessToken.permissions containsObject:str] ) || !accessToken )
 			// Facebook SDK 3.19
@@ -582,20 +497,20 @@ IOSFBConnect::LoginAsync( NSString *applicationId, NSArray *readPermissions, NSA
 	[login logInWithReadPermissions:@[@"public_profile", @"user_friends"] handler:^(FBSDKLoginManagerLoginResult *result, NSError *error) {
 		if (error)
 		{
-			// TODO: Process error
 			NSLog(@"Login errored.");
+			LoginStateChanged( FBConnectLoginEvent::kLoginFailed, error );
 		}
 		else if (result.isCancelled)
 		{
-			// TODO: Handle cancellations
 			NSLog(@"Login cancelled.");
+			LoginStateChanged( FBConnectLoginEvent::kLoginCancelled, nil );
 		}
 		else
 		{
 			NSLog(@"Login succeeded.");
 			// If you ask for multiple permissions at once, you
 			// should check if specific permissions missing
-			int numPermissions = [readPermissions count] + [publishPermissions count];
+			int numPermissions = (int)([readPermissions count] + [publishPermissions count]);
 			if ( numPermissions > 0 )
 			{
 				FBSDKLoginManagerRequestTokenHandler publishHandler = ^( FBSDKLoginManagerLoginResult *result, NSError *error )
@@ -615,7 +530,10 @@ IOSFBConnect::LoginAsync( NSString *applicationId, NSArray *readPermissions, NSA
 						}
 					}
 
-					// TODO: Figure out if this is needed still
+					// Facebook SDK 4+
+					ReauthorizationCompleted(error);
+					
+					// Facebook SDK 3.19
 					//ReauthorizationCompleted(publishSession, publishError);
 
 					if ( release )
@@ -649,8 +567,11 @@ IOSFBConnect::LoginAsync( NSString *applicationId, NSArray *readPermissions, NSA
 							}
 						}
 						
-						// TODO: Figure out if this is needed still
-						//ReauthorizationCompleted(session, error);
+						// Facebook SDK 4+
+						ReauthorizationCompleted(error);
+						
+						// Facebook SDK 3.19
+						//ReauthorizationCompleted(session, publishError);
 						
 						if ( release )
 						{
@@ -665,18 +586,24 @@ IOSFBConnect::LoginAsync( NSString *applicationId, NSArray *readPermissions, NSA
 				}
 				else if ( publishPermissions && publishPermissions.count > 0 )
 				{
-					// If there aren't any read permissions and the number of requested permissions is >0 then they have to be publish permissions
+					// If there aren't any read permissions and the number of requested permissions is > 0 then they have to be publish permissions
 					[login logInWithPublishPermissions:publishPermissions handler:publishHandler];
 				}
 				else
 				{
 					// Send a login event
+					// Facebook SDK 4+
+					LoginStateChanged( FBConnectLoginEvent::kLogin, nil );
+					// Facebook SDK 3.19
 					//SessionChanged( fSession, FBSessionStateOpen, nil );
 				}
 			}
 			else
 			{
 				// Send a login event
+				// Facebook SDK 4+
+				LoginStateChanged( FBConnectLoginEvent::kLogin, nil );
+				// Facebook SDK 3.19
 				//SessionChanged( fSession, FBSessionStateOpen, nil );
 			}
 		}
@@ -812,6 +739,8 @@ IOSFBConnect::Logout() const
 	[fFacebook autorelease]; // TODO: Figure out better fix for the KVC error msg. Right now we "defer" release via autorelease.
 	fFacebook = nil;
 
+	// Facebook SDK 4+
+	LoginStateChanged(FBConnectLoginEvent::kLogout, nil);
 	// Facebook SDK 3.19
 //	SessionChanged( nil, FBSessionStateClosed, nil);
 }
@@ -819,9 +748,11 @@ IOSFBConnect::Logout() const
 void
 IOSFBConnect::Request( lua_State *L, const char *path, const char *httpMethod, int index ) const
 {
+	// Facebook SDK 4+
+	if ( [FBSDKAccessToken currentAccessToken] )
 	// Facebook SDK 3.19
 //	if ( fSession.isOpen )
-//	{
+	{
 		// Convert common params
 		NSString *pathString = [NSString stringWithUTF8String:path];
 		NSString *httpMethodString = [NSString stringWithUTF8String:httpMethod];
@@ -836,9 +767,44 @@ IOSFBConnect::Request( lua_State *L, const char *path, const char *httpMethod, i
 			params = [NSDictionary dictionary];
 		}
 
+		// Facebook SDK 4+
+		FBSDKGraphRequestHandler handler = ^( FBSDKGraphRequestConnection *connection, id result, NSError *error )
+		{
+			if ( ! error )
+			{
+				NSData *jsonObject = [NSJSONSerialization dataWithJSONObject:result options:0 error:nil];
+				NSString *jsonString = [[NSString alloc] initWithData:jsonObject encoding:NSUTF8StringEncoding];
+				FBConnectRequestEvent e( [jsonString UTF8String], false );
+				Dispatch( e );
+			}
+			else
+			{
+				FBConnectRequestEvent e( [[error localizedDescription] UTF8String], true );
+				Dispatch( e );
+			}
+		};
+		// For debugging Graph Requests
+		[FBSDKSettings setLoggingBehavior:[NSSet setWithObject:FBSDKLoggingBehaviorGraphAPIDebugInfo]];
+		
+		[[[FBSDKGraphRequest alloc] initWithGraphPath:pathString parameters:params HTTPMethod:httpMethodString]
+		 startWithCompletionHandler:^( FBSDKGraphRequestConnection *connection, id result, NSError *error )
+		 {
+			 if ( ! error )
+			 {
+				 NSData *jsonObject = [NSJSONSerialization dataWithJSONObject:result options:0 error:nil];
+				 NSString *jsonString = [[NSString alloc] initWithData:jsonObject encoding:NSUTF8StringEncoding];
+				 FBConnectRequestEvent e( [jsonString UTF8String], false );
+				 Dispatch( e );
+			 }
+			 else
+			 {
+				 FBConnectRequestEvent e( [[error localizedDescription] UTF8String], true );
+				 Dispatch( e );
+			 }
+		 }];
+		
 		// Facebook SDK 3.19
-		// TODO: Figure out the v4 analog of FBRequestHandler and FBConnectRequestEvent
-		// FBRequestConnection -> FBSDKGraphRequestConnection
+		// FBRequestConnection -> FBSDKGraphRequestConnection in Facebook SDK 4+
 //		FBRequestHandler handler = ^( FBRequestConnection *connection, id result, NSError *error )
 //		{
 //			if ( ! error )
@@ -856,15 +822,14 @@ IOSFBConnect::Request( lua_State *L, const char *path, const char *httpMethod, i
 //		};
 //
 //		[FBRequestConnection startWithGraphPath:pathString parameters:params HTTPMethod:httpMethodString completionHandler:handler];
-	// Facebook SDK 3.19
-//	}
+	}
 }
-    
+	
 void
 IOSFBConnect::PublishInstall(const char *appId) const
 {
-	// TODO: Remove this line of code as it looks pointless.
-    NSString *applicationId = [NSString stringWithUTF8String:appId];
+	// TODO: Inform user they don't need to pass an app ID anymore.
+	NSString *applicationId = [NSString stringWithUTF8String:appId];
 	// Facebook SDK 4+
 	[FBSDKAppEvents activateApp];
 	// Facebook SDK 3.19
@@ -1389,7 +1354,8 @@ IOSFBConnect::ShowDialog( lua_State *L, int index ) const
 //		}
 //	}
 }
-	
+
+// TODO: Remove invalid permissions from here. create_event is invalid in Graph API v2.4
 bool
 IOSFBConnect::IsPublishPermission(NSString *permission)
 {

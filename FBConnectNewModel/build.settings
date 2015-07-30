@@ -18,7 +18,7 @@ settings =
         {
             publisherId = "com.coronalabs",
             supportedPlatforms = {
-                iphone = false,
+                iphone = true,
                 android = { url="http://ajaymccaleb.com/CoronaPlugins/facebookv4android.tgz" },
                 ["mac-sim"] = false,
                 ["win-sim"] = false,

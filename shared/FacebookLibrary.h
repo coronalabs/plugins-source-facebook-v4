@@ -11,8 +11,8 @@
 #include "CoronaLua.h"
 #include "CoronaMacros.h"
 
-// This corresponds to the name of the library, e.g. [Lua] require "facebook"
+// This corresponds to the name of the library, e.g. [Lua] require "plugin.facebook.v4"
 // where the '.' is replaced with '_'
-CORONA_EXPORT int luaopen_facebook( lua_State *L );
+CORONA_EXPORT int luaopen_plugin_facebook_v4( lua_State *L );
 
 #endif // _FacebookLibrary_H__
