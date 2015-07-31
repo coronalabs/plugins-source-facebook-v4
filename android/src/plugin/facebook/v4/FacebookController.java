@@ -976,13 +976,20 @@ public class FacebookController {
 
                 // Grab the base share parameters -- those defined in ShareContent.java
                 String contentUrl = params != null ? (String) params.get("link") : null;
-                List<String> peopleIds =
-                        params != null ? (List<String>) params.get("peopleIds") : null;
+                LinkedList<String> peopleIds = null;
+                Hashtable peopleIdsTable =
+                        params != null ? (Hashtable) params.get("peopleIds") : null;
+                if (peopleIdsTable != null) {
+                    peopleIds = new LinkedList(peopleIdsTable.values());
+                }
                 String placeId = params != null ? (String) params.get("placeId") : null;
                 String ref = params != null ? (String) params.get("ref") : null;
+
                 // The link action also supports most of what the feed action used to support
-                // Treat link and feed the same as we open the share dialog in feed mode as is.
-                if (/*action.equals("link") || */action.equals("feed")) {
+                // "feed" will present the feed dialog as it was in the old Facebook plugin
+                // "link" uses Facebook's default settings which depends on the presence
+                // of the Facebook app on the device.
+                if (action.equals("link") || action.equals("feed")) {
 
                     // Validate data
                     // Get the Uris that we can parse
@@ -1011,8 +1018,16 @@ public class FacebookController {
                             .setPlaceId(placeId)
                             .setRef(ref)
                             .build();
-
-                    sShareDialog.show(linkContent, ShareDialog.Mode.FEED);
+                    if (action.equals("feed")) {
+                        // Present the dialog through the old Feed dialog.
+                        sShareDialog.show(linkContent, ShareDialog.Mode.FEED);
+                    } else {
+                        // Presenting the share dialog behaves differently depending on whether the
+                        // user has the Facebook app installed on their device or not. With the
+                        // Facebook app, things like tagging friends and a location are built-in.
+                        // Otherwise, these things aren't built-in.
+                        sShareDialog.show(linkContent);
+                    }
                 } else if (action.equals("requests") || action.equals("apprequests")) {
 
                     // Grab game request-specific data
