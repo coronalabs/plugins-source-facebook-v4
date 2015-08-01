@@ -20,6 +20,7 @@
 // Facebook SDK 4+
 #import <FBSDKCoreKit/FBSDKCoreKit.h>
 #import <FBSDKLoginKit/FBSDKLoginKit.h>
+#import <FBSDKShareKit/FBSDKShareKit.h>
 // Facebook SDK 3.19
 ////#import <FacebookSDK/FacebookSDK.h>
 //#import "Facebook.h"
@@ -199,7 +200,7 @@ IOSFBConnect::IOSFBConnect( id< CoronaRuntime > runtime )
 	fRuntime( runtime ),
 	// Facebook SDK 3.19
 	//fSession( nil ),
-	fFacebook( nil ),
+	//fFacebook( nil ),
 	// Facebook SDK 3.19
 	//fFacebookDelegate( [[IOSFBConnectDelegate alloc] initWithOwner:this] ),
 	fHasObserver( false ),
@@ -216,7 +217,7 @@ IOSFBConnect::~IOSFBConnect()
 	[fConnectionDelegate release];
 	// Facebook SDK 3.19
 	//[fFacebookDelegate release];
-	[fFacebook release];
+	//[fFacebook release];
 }
 
 // Facebook SDK 4+
@@ -437,18 +438,97 @@ IOSFBConnect::Dispatch( const FBConnectEvent& e ) const
 	e.Dispatch( fRuntime.L, GetListener() );
 }
 
-// TODO: Merge with isActive flag introduced on Android in a logcal way since isActive won't apply to iOS.
-bool
-IOSFBConnect::IsAccessDenied() const
+// Creates a Lua table out of an NSArray with NSStrings inside.
+// Leaves the Lua table on top of the stack.
+void
+IOSFBConnect::CreateLuaTableFromStringArray(lua_State *L, NSArray *array)
 {
-	ACAccountStore *accountStore = [[ACAccountStore alloc] init];
-	ACAccountType *accountType = [accountStore accountTypeWithAccountTypeIdentifier:ACAccountTypeIdentifierFacebook];
-	[accountStore release];
-	return !accountType.accessGranted;
+	lua_newtable(L);
+	for (int i = 0; i < array.count; i++)
+	{
+		// Push this string to the top of the stack
+		lua_pushstring(L, [array[i] UTF8String]);
+		
+		// Assign this string to the table 2nd from the top of the stack.
+		// Lua arrays are 1-based so add 1 to index correctly.
+		lua_rawseti(L, -2, i + 1);
+	}
+	
+	// Result is on top of the lua stack.
+}
+	
+// Grabs the current access token from Facebook and converts it to a Lua table
+void
+IOSFBConnect::GetCurrentAccessToken( lua_State *L ) const
+{
+	FBSDKAccessToken *accessToken = [FBSDKAccessToken currentAccessToken];
+	if (accessToken)
+	{
+		// Table of access token data to be returned
+		lua_createtable(L, 0, 7);
+		
+		// Token string - like in fbconnect event
+		lua_pushstring(L, [accessToken.tokenString UTF8String]);
+		lua_setfield(L, -2, "token");
+		
+		// Expiration date - like in fbconnect event
+		lua_pushnumber(L, [accessToken.expirationDate timeIntervalSince1970]);
+		lua_setfield(L, -2, "expiration");
+		
+		// Refresh date
+		lua_pushnumber(L, [accessToken.refreshDate timeIntervalSince1970]);
+		lua_setfield(L, -2, "lastRefreshed");
+		
+		// App Id
+		lua_pushstring(L, [accessToken.appID UTF8String]);
+		lua_setfield(L, -2, "appId");
+		
+		// User Id
+		lua_pushstring(L, [accessToken.userID UTF8String]);
+		lua_setfield(L, -2, "userId");
+		
+		// Granted permissions
+		NSArray *grantedPermissions = accessToken.permissions.allObjects;
+		CreateLuaTableFromStringArray(L, grantedPermissions);
+		
+		// Assign the granted permissions table to the access token table,
+		// which is now 2nd from the top of the stack.
+		lua_setfield(L, -2, "grantedPermissions");
+		
+		// Declined permissions
+		NSArray *declinedPermissions = accessToken.declinedPermissions.allObjects;
+		CreateLuaTableFromStringArray(L, declinedPermissions);
+		
+		// Assign the declined permissions table to the access token table,
+		// which is now 2nd from the top of the stack.
+		lua_setfield(L, -2, "declinedPermissions");
+		
+		// Now our table of access token data is at the top of the stack
+	}
+	else
+	{
+		// Return nil
+		lua_pushnil(L);
+	}
+	
 }
 
+// Attempt to merge facebook.isActive and facebook.accessDenied which didn't work out.
+// Was IsAccessDenied in old facebook plugin.
+// Since facebook.isActive() was introduced on Android for verifying that FacebookSdk.sdkInitialize finished on the UI thread,
+// and IsAccessDenied is similar in concept, it's being renamed isActive and the polarity on the boolean is opposite.
+//bool
+//IOSFBConnect::IsActive() const
+//{
+//	ACAccountStore *accountStore = [[ACAccountStore alloc] init];
+//	ACAccountType *accountType = [accountStore accountTypeWithAccountTypeIdentifier:ACAccountTypeIdentifierFacebook];
+//	[accountStore release];
+//	return accountType.accessGranted;
+//}
+
+// Facebook SDK 4+
 void
-IOSFBConnect::Login( const char *appId, const char *permissions[], int numPermissions ) const
+IOSFBConnect::Login( const char *permissions[], int numPermissions ) const
 {
 	// The read and publish permissions should be requested seperately
 	NSMutableArray *readPermissions = nil;
@@ -462,10 +542,7 @@ IOSFBConnect::Login( const char *appId, const char *permissions[], int numPermis
 		{
 			NSString *str = [[NSString alloc] initWithUTF8String:permissions[i]];
 			// Don't request the permission again if the accessToken already has it
-			// Facebook SDK 4+
 			if ( ( accessToken && ![accessToken.permissions containsObject:str] ) || !accessToken )
-			// Facebook SDK 3.19
-//			if ( ( fSession && ![fSession.permissions containsObject:str] ) || !fSession )
 			{
 				// This might need to change if the sdk is upgraded
 				if ( IsPublishPermission(str) )
@@ -477,20 +554,64 @@ IOSFBConnect::Login( const char *appId, const char *permissions[], int numPermis
 					[readPermissions addObject:str];
 				}
 			}
-		
+
 			[str release];
 		}
 	}
 
-	NSString *applicationId = [NSString stringWithUTF8String:appId];
-	
 	dispatch_async( dispatch_get_main_queue(), ^() {
-		LoginAsync( applicationId, readPermissions, publishPermissions );
+		LoginAsync( readPermissions, publishPermissions );
 	} );
 }
+
+// Facebook SDK 3.19
+//void
+//IOSFBConnect::Login( const char *appId, const char *permissions[], int numPermissions ) const
+//{
+//	// The read and publish permissions should be requested seperately
+//	NSMutableArray *readPermissions = nil;
+//	NSMutableArray *publishPermissions = nil;
+//	if ( numPermissions )
+//	{
+//		FBSDKAccessToken *accessToken = [FBSDKAccessToken currentAccessToken];
+//		readPermissions = [NSMutableArray arrayWithCapacity:numPermissions];
+//		publishPermissions = [NSMutableArray arrayWithCapacity:numPermissions];
+//		for ( int i = 0; i < numPermissions; i++ )
+//		{
+//			NSString *str = [[NSString alloc] initWithUTF8String:permissions[i]];
+//			// Don't request the permission again if the accessToken already has it
+//			// Facebook SDK 4+
+//			if ( ( accessToken && ![accessToken.permissions containsObject:str] ) || !accessToken )
+//			// Facebook SDK 3.19
+////			if ( ( fSession && ![fSession.permissions containsObject:str] ) || !fSession )
+//			{
+//				// This might need to change if the sdk is upgraded
+//				if ( IsPublishPermission(str) )
+//				{
+//					[publishPermissions addObject:str];
+//				}
+//				else
+//				{
+//					[readPermissions addObject:str];
+//				}
+//			}
+//		
+//			[str release];
+//		}
+//	}
+//
+//	NSString *applicationId = [NSString stringWithUTF8String:appId];
+//	
+//	dispatch_async( dispatch_get_main_queue(), ^() {
+//		LoginAsync( applicationId, readPermissions, publishPermissions );
+//	} );
+//}
 	
 void
-IOSFBConnect::LoginAsync( NSString *applicationId, NSArray *readPermissions, NSArray *publishPermissions ) const
+// Facebook SDK 4+
+IOSFBConnect::LoginAsync( NSArray *readPermissions, NSArray *publishPermissions ) const
+// Facebook SDK 3.19
+//IOSFBConnect::LoginAsync( NSString *applicationId, NSArray *readPermissions, NSArray *publishPermissions ) const
 {
 	// Facebook SDK 4+
 	FBSDKLoginManager *login = [[FBSDKLoginManager alloc] init];
@@ -582,10 +703,12 @@ IOSFBConnect::LoginAsync( NSString *applicationId, NSArray *readPermissions, NSA
 				
 				if ( readPermissions && readPermissions.count > 0 )
 				{
+					NSLog(@"Requesting read permissions");
 					[login logInWithReadPermissions:readPermissions handler:readHandler];
 				}
 				else if ( publishPermissions && publishPermissions.count > 0 )
 				{
+					NSLog(@"Requesting publish permissions");
 					// If there aren't any read permissions and the number of requested permissions is > 0 then they have to be publish permissions
 					[login logInWithPublishPermissions:publishPermissions handler:publishHandler];
 				}
@@ -735,9 +858,9 @@ IOSFBConnect::Logout() const
 	// Facebook SDK 3.19
 //	[fSession closeAndClearTokenInformation];
 //	fSession = nil;
-
-	[fFacebook autorelease]; // TODO: Figure out better fix for the KVC error msg. Right now we "defer" release via autorelease.
-	fFacebook = nil;
+//
+//	[fFacebook autorelease]; // TODO: Figure out better fix for the KVC error msg. Right now we "defer" release via autorelease.
+//	fFacebook = nil;
 
 	// Facebook SDK 4+
 	LoginStateChanged(FBConnectLoginEvent::kLogout, nil);
@@ -826,20 +949,560 @@ IOSFBConnect::Request( lua_State *L, const char *path, const char *httpMethod, i
 }
 	
 void
-IOSFBConnect::PublishInstall(const char *appId) const
+// Facebook SDK 4+
+IOSFBConnect::PublishInstall() const
+// Facebook SDK 3.19
+//IOSFBConnect::PublishInstall(const char *appId) const
 {
-	// TODO: Inform user they don't need to pass an app ID anymore.
-	NSString *applicationId = [NSString stringWithUTF8String:appId];
 	// Facebook SDK 4+
 	[FBSDKAppEvents activateApp];
+	
 	// Facebook SDK 3.19
+//	NSString *applicationId = [NSString stringWithUTF8String:appId];
 //	[FBAppEvents activateApp];
 }
 
+// Facebook SDK 4+
 void
 IOSFBConnect::ShowDialog( lua_State *L, int index ) const
 {
-	// Facebook SDK 3.19
+	NSString *action = nil;
+	NSDictionary *dict = nil;
+
+//	const char *chosenOption = luaL_checkstring( L, 1 );
+//
+//	// Places
+//	if ( 0 == strcmp( "place", chosenOption ) )
+//	{
+//		// A reference to our callback handler
+//		static int callbackRef = 0;
+//
+//		// Set reference to onComplete function
+//		if ( lua_gettop( L ) > 1 )
+//		{
+//			// Set the delegates callbackRef to reference the onComplete function (if it exists)
+//			if ( lua_isfunction( L, lua_gettop( L ) ) )
+//			{
+//				callbackRef = luaL_ref( L, LUA_REGISTRYINDEX );
+//			}
+//		}
+//
+//		static float longitude = 48.857875;
+//		static float latitude = 2.294635;
+//		static const char *chosenTitle;
+//		static const char *searchText;
+//		static int resultsLimit = 50;
+//		static int radiusInMeters = 1000;
+//
+//		NSString *placePickerTitle = [NSString stringWithUTF8String:"Select a Place"];
+//
+//		// Get the name key
+//		if ( ! lua_isnoneornil( L, -1 ) )
+//		{
+//			// Options table exists, retrieve latitude key
+//			lua_getfield( L, -1, "longitude" );
+//
+//			// If the key has been specified, is not nil and it is a number then check it.
+//			if ( ! lua_isnoneornil( L, -1 ) && lua_isnumber( L, -1 ) )
+//			{
+//				// Enforce number
+//				luaL_checktype( L, -1, LUA_TNUMBER );
+//
+//				// Check the string
+//				longitude = luaL_checknumber( L, -1 );
+//			}
+//
+//			// Options table exists, retrieve latitude key
+//			lua_getfield( L, -2, "latitude" );
+//
+//			// If the key has been specified, is not nil and it is a number then check it.
+//			if ( ! lua_isnoneornil( L, -1 ) && lua_isnumber( L, -1 ) )
+//			{
+//				// Enforce number
+//				luaL_checktype( L, -1, LUA_TNUMBER );
+//
+//				// Check the number
+//				latitude = luaL_checknumber( L, -1 );
+//			}
+//
+//			// Options table exists, retrieve title key
+//			lua_getfield( L, -3, "title" );
+//
+//			// If the key has been specified, is not nil and it is a string then check it.
+//			if ( ! lua_isnoneornil( L, -1 ) && lua_isstring( L, -1 ) )
+//			{
+//				// Enforce string
+//				luaL_checktype( L, -1, LUA_TSTRING );
+//
+//				// Check the string
+//				chosenTitle = luaL_checkstring( L, -1 );
+//			}
+//
+//			// Set the controller's title
+//			if ( chosenTitle )
+//			{
+//				placePickerTitle = [NSString stringWithUTF8String:chosenTitle];
+//			}
+//
+//			// Options table exists, retrieve searchText key
+//			lua_getfield( L, -4, "searchText" );
+//
+//			// If the key has been specified, is not nil and it is a string then check it.
+//			if ( ! lua_isnoneornil( L, -1 ) && lua_isstring( L, -1 ) )
+//			{
+//				// Enforce string
+//				luaL_checktype( L, -1, LUA_TSTRING );
+//
+//				// Check the string
+//				searchText = luaL_checkstring( L, -1 );
+//			}
+//			else
+//			{
+//				searchText = "restuaruant";
+//			}
+//
+//			// Options table exists, retrieve resultsLimit key
+//			lua_getfield( L, -5, "resultsLimit" );
+//
+//			// If the key has been specified, is not nil and it is a string then check it.
+//			if ( ! lua_isnoneornil( L, -1 ) && lua_isnumber( L, -1 ) )
+//			{
+//				// Enforce number
+//				luaL_checktype( L, -1, LUA_TNUMBER );
+//
+//				// Check the number
+//				resultsLimit = luaL_checknumber( L, -1 );
+//			}
+//
+//			// Options table exists, retrieve radiusInMeters key
+//			lua_getfield( L, -6, "radiusInMeters" );
+//
+//			// If the key has been specified, is not nil and it is a string then check it.
+//			if ( ! lua_isnoneornil( L, -1 ) && lua_isnumber( L, -1 ) )
+//			{
+//				// Enforce number
+//				luaL_checktype( L, -1, LUA_TNUMBER );
+//
+//				// Check the number
+//				radiusInMeters = luaL_checknumber( L, -1 );
+//			}
+//		}
+//
+//		// Set the controller's title
+//		if ( chosenTitle )
+//		{
+//			placePickerTitle = [NSString stringWithUTF8String:chosenTitle];
+//		}
+//
+//		// Create the place picker view controller
+//		FBPlacePickerViewController *placePicker = [[FBPlacePickerViewController alloc] init];
+//		placePicker.title = placePickerTitle;
+//		placePicker.searchText = [NSString stringWithUTF8String:searchText];
+//
+//		// Set the coordinates
+//		CLLocationCoordinate2D coordinates =
+//			CLLocationCoordinate2DMake( longitude, latitude );
+//
+//		// Setup the cache descriptor
+//		FBCacheDescriptor *placeCacheDescriptor =
+//			[FBPlacePickerViewController
+//			 cacheDescriptorWithLocationCoordinate:coordinates
+//			 radiusInMeters:radiusInMeters
+//			 searchText:placePicker.searchText
+//			 resultsLimit:resultsLimit
+//			 fieldsForRequest:nil];
+//
+//		// Configure the cache descriptor
+//		[placePicker configureUsingCachedDescriptor:placeCacheDescriptor];
+//		// Load the data
+//		[placePicker loadData];
+//
+//		// Show the view controller
+//		[placePicker presentModallyFromViewController:fRuntime.appViewController
+//												animated:YES
+//												handler:^(FBViewController *sender, BOOL donePressed)
+//												{
+//													if (donePressed)
+//													{
+//														//NSLog( @"%@", placePicker.selection );
+//
+//														/*
+//																	List of keys returned
+//
+//																	"category" - string
+//																	"id" - number
+//																	"location" - table ie.
+//																	location =
+//																	{
+//																		"city" - string,
+//																		"country" - string.
+//																		"latitude" - string.
+//																		"longitude" - string.
+//																		"state" - string.
+//																		"street" - string.
+//																		"zip" - string.
+//																	}
+//
+//																	"name" - string.
+//
+//																	"picture" - table. .ie
+//																	picture =
+//																	{
+//																		data =
+//																		{
+//																			"is_silhouette" - bool
+//																			"url" - string
+//																		}
+//																	}
+//
+//																	"were_here_count" - number
+//
+//
+//																	*/
+//
+//														// If there is a callback to exectute
+//														if ( 0 != callbackRef )
+//														{
+//															// Push the onComplete function onto the stack
+//															lua_rawgeti( L, LUA_REGISTRYINDEX, callbackRef );
+//
+//															// event table
+//															lua_newtable( L );
+//
+//															// event.data table
+//															lua_newtable( L );
+//
+//															// Get the properties from the graph
+//
+//															const char *placeCategory = [(NSString*) [placePicker.selection objectForKey:@"category"] UTF8String];
+//															lua_pushstring( L, placeCategory );
+//															lua_setfield( L, -2, "category" );
+//
+//															const char *placeId = [(NSString*) [placePicker.selection objectForKey:@"id"] UTF8String];
+//															lua_pushstring( L, placeId );
+//															lua_setfield( L, -2, "id" );
+//
+//															const char *placeName = [(NSString*) [placePicker.selection objectForKey:@"name"] UTF8String];
+//															lua_pushstring( L, placeName );
+//															lua_setfield( L, -2, "name" );
+//
+//															static int placeWereHere = [(NSString*) [placePicker.selection objectForKey:@"were_here_count"] intValue];
+//															lua_pushnumber( L, placeWereHere );
+//															lua_setfield( L, -2, "wereHere" );
+//
+//															const char *placeCity = [(NSString*) [[placePicker.selection objectForKey:@"location"] valueForKey:@"city"] UTF8String];
+//															lua_pushstring( L, placeCity );
+//															lua_setfield( L, -2, "city" );
+//
+//															const char *placeCountry = [(NSString*) [[placePicker.selection objectForKey:@"location"] valueForKey:@"country"] UTF8String];
+//															lua_pushstring( L, placeCountry );
+//															lua_setfield( L, -2, "country" );
+//
+//															NSDecimalNumber *thelatitude = [[placePicker.selection objectForKey:@"location"] valueForKey:@"latitude"];
+//															static float placeLatitude = [(NSDecimalNumber*)thelatitude floatValue];
+//															lua_pushnumber( L, placeLatitude );
+//															lua_setfield( L, -2, "latitude" );
+//
+//															NSDecimalNumber *thelongitude = [[placePicker.selection objectForKey:@"location"] valueForKey:@"longitude"];
+//															static float placeLongitude = [(NSDecimalNumber*)thelongitude floatValue];
+//															lua_pushnumber( L, placeLongitude );
+//															lua_setfield( L, -2, "longitude" );
+//
+//															const char *placeState = [(NSString*) [[placePicker.selection objectForKey:@"location"] valueForKey:@"state"] UTF8String];
+//															lua_pushstring( L, placeState );
+//															lua_setfield( L, -2, "state" );
+//
+//															const char *placeStreet = [(NSString*) [[placePicker.selection objectForKey:@"location"] valueForKey:@"street"] UTF8String];
+//															lua_pushstring( L, placeStreet );
+//															lua_setfield( L, -2, "street" );
+//
+//															const char *placeZip = [(NSString*) [[placePicker.selection objectForKey:@"location"] valueForKey:@"zip"] UTF8String];
+//															lua_pushstring( L, placeZip );
+//															lua_setfield( L, -2, "zip" );
+//
+//															// Create picture table
+//															lua_newtable( L );
+//															// Create picture.data table
+//															lua_newtable( L );
+//
+//															// Set the place picture.data 'is_silhouette' property
+//															bool placeIsSillhouette = (bool)[[[placePicker.selection objectForKey:@"picture"] valueForKey:@"data"] valueForKey:@"is_silhouette"];
+//															lua_pushboolean( L, placeIsSillhouette );
+//															lua_setfield( L, -2, "isSilhouette" );
+//
+//															// Set the place picture.data 'url' property
+//															const char *placeUrl = [[[[placePicker.selection objectForKey:@"picture"] valueForKey:@"data"] valueForKey:@"url"] UTF8String];
+//															lua_pushstring( L, placeUrl );
+//															lua_setfield( L, -2, "url" );
+//
+//															// Set the data nested table
+//															lua_setfield(L, -2, "data" );
+//															// Set the picture outer table
+//															lua_setfield( L, -2, "picture" );
+//
+//															// Set event.data
+//															lua_setfield( L, -2, "data" );
+//
+//															// Set event.name property
+//															lua_pushstring( L, "fbDialog" ); // Value ( name )
+//															lua_setfield( L, -2, "name" ); // Key
+//
+//															// Set event.type property
+//															lua_pushstring( L, "place" ); // Value ( name )
+//															lua_setfield( L, -2, "type" ); // Key
+//
+//															// Call the onComplete function
+//															Corona::Lua::DoCall( L, 1, 1 );
+//
+//															// Free the refrence
+//															lua_unref( L, callbackRef );
+//														}
+//													}
+//												}];
+//
+//	}
+//	// Friends
+//	else if ( 0 == strcmp( "friends", chosenOption ) )
+//	{
+//		// A reference to our callback handler
+//		static int callbackRef = 0;
+//
+//		// Set reference to onComplete function
+//		if ( lua_gettop( L ) > 1 )
+//		{
+//			// Set the delegates callbackRef to reference the onComplete function (if it exists)
+//			if ( lua_isfunction( L, lua_gettop( L ) ) )
+//			{
+//				callbackRef = luaL_ref( L, LUA_REGISTRYINDEX );
+//			}
+//		}
+//
+//		FBFriendPickerViewController *friendPicker = [[FBFriendPickerViewController alloc] init];
+//
+//		// Set up the friend picker to sort and display names the same way as the
+//		// iOS Address Book does.
+//
+//		friendPicker.sortOrdering = FBFriendSortByLastName;
+//		friendPicker.displayOrdering = FBFriendDisplayByFirstName;
+//
+//		// Load the data
+//		[friendPicker loadData];
+//
+//		// Show the view controller
+//		[friendPicker presentModallyFromViewController:fRuntime.appViewController
+//												  animated:YES
+//												   handler:^( FBViewController *sender, BOOL donePressed )
+//												   {
+//														if ( donePressed )
+//														{
+//															//NSDictionary *value = [friendPicker.selection objectAtIndex:1];
+//															//NSLog( @"%@", [value objectForKey:@"name"] );
+//															/*
+//																	List of keys returned
+//
+//																	"first_name" - string
+//																	"last_name" - string
+//																	"name" - string (full name)
+//																	"id" - number
+//																	"picture" - table containing subtable ie
+//																	picture =
+//																	{
+//																		data =
+//																		{
+//																			"is_silhouette" - number 0 false, 1 true
+//																			"url" - url to friend picture
+//																		}
+//																	}
+//																	*/
+//
+//																	//NSLog( @"value of data silhouette is %@", [[[items valueForKey:@"picture"] valueForKey:@"data"] valueForKey:@"is_silhouette"] );
+//
+//															// If there is a callback to exectute
+//															if ( 0 != callbackRef )
+//															{
+//																// Push the onComplete function onto the stack
+//																lua_rawgeti( L, LUA_REGISTRYINDEX, callbackRef );
+//
+//																// Event table
+//																lua_newtable( L );
+//
+//																// event.data table
+//																lua_newtable( L );
+//
+//																// Total number of items (friends) in the dictionary
+//																int numOfItems = [friendPicker.selection count];
+//
+//																// Loop through the dictionary and pass the data back to lua
+//																for ( int i = 0; i < numOfItems; i ++ )
+//																{
+//																	// Create a table to hold the current friend data
+//																	lua_newtable( L );
+//
+//																	// Get the properties from the current dictionary index
+//																	NSDictionary *items = [friendPicker.selection objectAtIndex:i];
+//
+//																	// Set the friend's first name
+//																	const char *friendFirstName = [[items objectForKey:@"first_name"] UTF8String];
+//																	lua_pushstring( L, friendFirstName );
+//																	lua_setfield( L, -2, "firstName" );
+//
+//																	// Set the friend's last name
+//																	const char *friendLastName = [[items objectForKey:@"last_name"] UTF8String];
+//																	lua_pushstring( L, friendLastName );
+//																	lua_setfield( L, -2, "lastName" );
+//
+//																	// Set the friend's full name
+//																	const char *friendFullName = [[items objectForKey:@"name"] UTF8String];
+//																	lua_pushstring( L, friendFullName );
+//																	lua_setfield( L, -2, "fullName" );
+//
+//																	// Set the friend's id
+//																	const char *friendId = [[items objectForKey:@"id"] UTF8String];
+//																	lua_pushstring( L, friendId );
+//																	lua_setfield( L, -2, "id" );
+//
+//																	// Create picture table
+//																	lua_newtable( L );
+//																	// Create picture.data table
+//																	lua_newtable( L );
+//
+//																	// Set the friends picture.data 'is_silhouette' property
+//																	id isSillhouette = [[[items valueForKey:@"picture"] valueForKey:@"data"] valueForKey:@"is_silhouette"];
+//																	BOOL friendIsSillhouette = [(NSNumber*)isSillhouette boolValue];
+//																	lua_pushboolean( L, friendIsSillhouette );
+//																	lua_setfield( L, -2, "isSilhouette" );
+//
+//																	// Set the friends picture.data 'url' property
+//																	const char *friendUrl = [[[[items valueForKey:@"picture"] valueForKey:@"data"] valueForKey:@"url"] UTF8String];
+//																	lua_pushstring( L, friendUrl );
+//																	lua_setfield( L, -2, "url" );
+//
+//																	// Set the data nested table
+//																	lua_setfield(L, -2, "data" );
+//																	// Set the picture outer table
+//																	lua_setfield( L, -2, "picture" );
+//
+//																	// Set the main table
+//																	lua_rawseti( L, -2, i + 1 );
+//																}
+//
+//																// Set event.data
+//																lua_setfield( L, -2, "data" );
+//
+//																// Set event.name property
+//																lua_pushstring( L, "fbDialog" ); // Value ( name )
+//																lua_setfield( L, -2, "name" ); // Key
+//
+//																// Set event.type property
+//																lua_pushstring( L, "friends" ); // Value ( name )
+//																lua_setfield( L, -2, "type" ); // Key
+//
+//																// Call the onComplete function
+//																Corona::Lua::DoCall( L, 1, 1 );
+//
+//																// Free the refrence
+//																lua_unref( L, callbackRef );
+//															}
+//														}
+//												   }];
+//	}
+
+	// Standard facebook.showDialog
+//	else
+//	{
+		if ( lua_isstring( L, 1 ) )
+		{
+			// New API
+			const char *str = lua_tostring( L, 1 );
+			if ( LUA_TSTRING == lua_type( L, 1 ) && str )
+			{
+				action = [NSString stringWithUTF8String:str];
+			}
+
+			if ( LUA_TTABLE == lua_type( L, 2 ) )
+			{
+				dict = CoronaLuaCreateDictionary( L, 2 );
+			}
+		}
+		else
+		{
+			CORONA_LOG_WARNING( "Invalid parameters passed to facebook.showDialog( action [, params] )" );
+		}
+		
+		if ( CORONA_VERIFY( action ) )
+		{
+			// Grab all the base share parameters
+			NSURL *contentUrl = nil;
+			NSArray *peopleIds = nil;
+			NSString *placeId = nil;
+			NSString *ref = nil;
+			
+			if ( dict )
+			{
+				contentUrl = [NSURL URLWithString:[dict objectForKey:@"link"]];
+				
+				// We use lower case "d" in "Id" for consistency with Android.
+				peopleIds = [[dict objectForKey:@"peopleIds"] allValues];
+				placeId = [dict objectForKey:@"placeId"];
+				
+				ref = [dict objectForKey:@"ref"];
+				
+			}
+			
+			// Present the Share dialog for the desired content
+			if ( [action isEqualToString:@"feed"] || [action isEqualToString:@"link"] )
+			{
+				// Grab the link-specific share content
+				NSString *contentDescription = nil;
+				NSString *contentTitle = nil;
+				NSURL *imageURL = nil;
+				
+				if ( dict )
+				{
+					contentDescription = [dict objectForKey:@"description"];
+					contentTitle = [dict objectForKey:@"title"];
+					imageURL = [NSURL URLWithString:[dict objectForKey:@"picture"]];
+				}
+				
+				FBSDKShareLinkContent *content = [[FBSDKShareLinkContent alloc] init];
+				content.contentDescription = contentDescription;
+				content.contentTitle = contentTitle;
+				content.contentURL = contentUrl;
+				content.imageURL = imageURL;
+				content.peopleIDs = peopleIds;
+				content.placeID = placeId;
+				content.ref = ref;
+				
+				if ( [action isEqualToString:@"feed"] )
+				{
+					// Present the traditional feed dialog
+					FBSDKShareDialog *dialog = [[FBSDKShareDialog alloc] init];
+					dialog.fromViewController = fRuntime.appViewController;
+					// NOTE: This is currently undocumented in Facebook SDK v4.4.0 docs.
+					// Find it in FBSDKShareDialog.m: Properties
+					dialog.shareContent = content;
+					dialog.mode = FBSDKShareDialogModeFeedWeb;
+					[dialog show];
+				}
+				else // We're using the new sharing model.
+				{
+					// Presenting the share dialog behaves differently depending on whether the user has the Facebook app installed on their device or not.
+					// With the Facebook app, things like tagging friends and a location are built-in. Otherwise, these things aren't built-in.
+					[FBSDKShareDialog showFromViewController:fRuntime.appViewController
+												 withContent:content
+													delegate:nil];
+				}
+			}
+			
+		}
+//	}
+}
+
+	
+// Facebook SDK 3.19
+//void
+//IOSFBConnect::ShowDialog( lua_State *L, int index ) const
+//{
 //	if ( ! fSession )
 //	{
 //		CORONA_LOG_WARNING( "facebook.showDialog() requires a valid session. Make sure to call facebook.login() first." );
@@ -1353,7 +2016,7 @@ IOSFBConnect::ShowDialog( lua_State *L, int index ) const
 //
 //		}
 //	}
-}
+//}
 
 // TODO: Remove invalid permissions from here. create_event is invalid in Graph API v2.4
 bool

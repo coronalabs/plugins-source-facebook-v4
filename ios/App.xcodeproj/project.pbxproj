@@ -58,6 +58,7 @@
 		A4C2449C1683FA5300C395D1 /* Social.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A4C244991683FA5300C395D1 /* Social.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		A4E2537F166AE3DC00DCDC2C /* Twitter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A4E2537E166AE3DC00DCDC2C /* Twitter.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		A4E253E5166DE7E000DCDC2C /* libfacebook.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A4E253E2166DE7C800DCDC2C /* libfacebook.a */; };
+		E6D2D6F61B69CA3B00F2F962 /* FBSDKShareKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E6D2D6F51B69CA3B00F2F962 /* FBSDKShareKit.framework */; };
 		E6F4A1AA1B6323A20080515A /* FBSDKCoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E6F4A1A81B6323A20080515A /* FBSDKCoreKit.framework */; };
 		E6F4A1AB1B6323A20080515A /* FBSDKLoginKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E6F4A1A91B6323A20080515A /* FBSDKLoginKit.framework */; };
 		F883235718340036004DEBC5 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F883235618340036004DEBC5 /* CoreVideo.framework */; };
@@ -140,6 +141,7 @@
 		A4C244991683FA5300C395D1 /* Social.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Social.framework; path = System/Library/Frameworks/Social.framework; sourceTree = SDKROOT; };
 		A4E2537E166AE3DC00DCDC2C /* Twitter.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Twitter.framework; path = System/Library/Frameworks/Twitter.framework; sourceTree = SDKROOT; };
 		A4E253DA166DE7C800DCDC2C /* Plugin.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Plugin.xcodeproj; sourceTree = "<group>"; };
+		E6D2D6F51B69CA3B00F2F962 /* FBSDKShareKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FBSDKShareKit.framework; path = ../sdk/ios/4.4.0/FBSDKShareKit.framework; sourceTree = "<group>"; };
 		E6F4A1A81B6323A20080515A /* FBSDKCoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FBSDKCoreKit.framework; path = ../sdk/ios/4.4.0/FBSDKCoreKit.framework; sourceTree = "<group>"; };
 		E6F4A1A91B6323A20080515A /* FBSDKLoginKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FBSDKLoginKit.framework; path = ../sdk/ios/4.4.0/FBSDKLoginKit.framework; sourceTree = "<group>"; };
 		F883235618340036004DEBC5 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
@@ -152,6 +154,7 @@
 			files = (
 				F88323581834003D004DEBC5 /* GLKit.framework in Frameworks */,
 				F883235718340036004DEBC5 /* CoreVideo.framework in Frameworks */,
+				E6D2D6F61B69CA3B00F2F962 /* FBSDKShareKit.framework in Frameworks */,
 				A4C2449A1683FA5300C395D1 /* Accounts.framework in Frameworks */,
 				A4C2449B1683FA5300C395D1 /* AdSupport.framework in Frameworks */,
 				A4C2449C1683FA5300C395D1 /* Social.framework in Frameworks */,
@@ -253,6 +256,7 @@
 		A484111C15114F700074BD57 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E6D2D6F51B69CA3B00F2F962 /* FBSDKShareKit.framework */,
 				E6F4A1A81B6323A20080515A /* FBSDKCoreKit.framework */,
 				E6F4A1A91B6323A20080515A /* FBSDKLoginKit.framework */,
 				F883235618340036004DEBC5 /* CoreVideo.framework */,

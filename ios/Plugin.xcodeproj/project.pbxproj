@@ -11,6 +11,7 @@
 		A480722216C8CB4100960127 /* FacebookLibrary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A480722016C8CB4100960127 /* FacebookLibrary.cpp */; };
 		A480722516C8CBB400960127 /* FBConnect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A480722316C8CBB400960127 /* FBConnect.cpp */; };
 		A480725916C9B3F500960127 /* FBConnectEvent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A480725716C9B3F500960127 /* FBConnectEvent.cpp */; };
+		E6D2D6F41B69CA2E00F2F962 /* FBSDKShareKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E6D2D6F31B69CA2E00F2F962 /* FBSDKShareKit.framework */; };
 		E6F4A1A61B6323940080515A /* FBSDKCoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E6F4A1A41B6323940080515A /* FBSDKCoreKit.framework */; };
 		E6F4A1A71B6323940080515A /* FBSDKLoginKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E6F4A1A51B6323940080515A /* FBSDKLoginKit.framework */; };
 /* End PBXBuildFile section */
@@ -37,6 +38,7 @@
 		A480725716C9B3F500960127 /* FBConnectEvent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FBConnectEvent.cpp; path = ../shared/FBConnectEvent.cpp; sourceTree = "<group>"; };
 		A480725816C9B3F500960127 /* FBConnectEvent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FBConnectEvent.h; path = ../shared/FBConnectEvent.h; sourceTree = "<group>"; };
 		A4E253B6166D6FB300DCDC2C /* libfacebook.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libfacebook.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		E6D2D6F31B69CA2E00F2F962 /* FBSDKShareKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FBSDKShareKit.framework; path = ../sdk/ios/4.4.0/FBSDKShareKit.framework; sourceTree = "<group>"; };
 		E6F4A1A41B6323940080515A /* FBSDKCoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FBSDKCoreKit.framework; path = ../sdk/ios/4.4.0/FBSDKCoreKit.framework; sourceTree = "<group>"; };
 		E6F4A1A51B6323940080515A /* FBSDKLoginKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FBSDKLoginKit.framework; path = ../sdk/ios/4.4.0/FBSDKLoginKit.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -48,6 +50,7 @@
 			files = (
 				E6F4A1A71B6323940080515A /* FBSDKLoginKit.framework in Frameworks */,
 				E6F4A1A61B6323940080515A /* FBSDKCoreKit.framework in Frameworks */,
+				E6D2D6F41B69CA2E00F2F962 /* FBSDKShareKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -66,6 +69,7 @@
 		A480721616C86B9700960127 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E6D2D6F31B69CA2E00F2F962 /* FBSDKShareKit.framework */,
 				E6F4A1A41B6323940080515A /* FBSDKCoreKit.framework */,
 				E6F4A1A51B6323940080515A /* FBSDKLoginKit.framework */,
 			);

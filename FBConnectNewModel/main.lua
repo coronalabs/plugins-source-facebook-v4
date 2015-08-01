@@ -285,11 +285,13 @@ end
 
 local function enforceFacebookLogin( )
 	if facebook.isActive then
-		if facebook.currentAccessToken == "" then
+		local accessToken = facebook.getCurrentAccessToken()
+		if accessToken == nil then
 			print( "Need to log in" )
 			facebook.login( {"publish_actions"} )
 		else
 			print( "Already logged in" )
+			printTable( accessToken, "Access Token Data" )
 			statusMessage.textObject.text = "login"
 			processFBCommand()
 		end

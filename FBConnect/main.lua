@@ -61,20 +61,22 @@ display.setStatusBar( display.HiddenStatusBar )
 -- Facebook Commands
 local fbCommand	= nil	-- forward reference
 local LOGOUT = 1
-local SHOW_FEED_DIALOG = 2
-local SHOW_FEED_W_PHOTO_DIALOG = 3
-local SHOW_REQUEST_DIALOG = 4
-local POST_MSG = 5
-local POST_PHOTO = 6
-local GET_USER_INFO = 7
-local PUBLISH_INSTALL = 8
-local GET_PLATFORM_INFO = 9
+local PUBLISH_INSTALL = 2
+local POST_PHOTO = 3
+local GET_USER_INFO = 4
+local GET_TAGGABLE_FRIENDS = 5
+local SHOW_FEED_W_PHOTO_DIALOG = 6
+local SHOW_REQUEST_DIALOG = 7
 
 -- Layout Locations
 local ButtonOrigX = 160
 local ButtonOrigY = 152.5
 local ButtonYOffset = 35
 local StatusMessageY = 420		-- position of status message
+
+-- Saved request info
+local loggedInUserID = nil;
+local taggableFriends = nil;
 
 local background = display.newImage( "facebook_bkg.png", centerX, centerY, true ) -- flag overrides large image downscaling
 
@@ -173,25 +175,24 @@ local function listener( event )
 		end
 
 		-- The following displays a Facebook dialog box for posting to your Facebook Wall
-		if fbCommand == SHOW_FEED_DIALOG then
-
-			-- "feed" is the standard "post status message" dialog
-			local response = facebook.showDialog( "feed", {
-				name = "Test name",
-				description = "Example description.",
-				link = "http://www.coronasdk.com/"
-			})
+		if fbCommand == GET_TAGGABLE_FRIENDS then
+			-- Need to get the Facebook ID of whoever's logged in with the "Get User Info" button.
+			local response = facebook.request( loggedInUserID .. "/taggable_friends" )
 			printTable(response)
 		end
 
 		-- This displays a Facebook Dialog for posting a link with a photo to your Facebook Wall
 		if fbCommand == SHOW_FEED_W_PHOTO_DIALOG then
+
+			-- Tag the first two friends we gathered if applicable
+			-- You need to use the "link" action for the peopleIDs to actually be used!
 			-- "feed" is the standard "post status message" dialog
-			local response = facebook.showDialog( "feed", {
+			local response = facebook.showDialog( "link", {
 				name = "Composer GUI",
 				link = "http://www.coronalabs.com/links/forum",
 				description = "Corona SDK for developing iOS and Android apps with the same code base.",
-				picture = "https://coronalabs.com/wp-content/uploads/2014/06/ComposerGUI_inside_Panel1010x6002.jpg"
+				picture = "https://coronalabs.com/wp-content/uploads/2014/06/ComposerGUI_inside_Panel1010x6002.jpg",
+				peopleIds = {taggableFriends[1].id, taggableFriends[2].id},
 			})
 			printTable(response)
 		end
@@ -206,7 +207,7 @@ local function listener( event )
 			printTable(response)
 		end
 
-		-- Request the current logged in user's info
+		-- Request the current logged in user's info and save it
 		if fbCommand == GET_USER_INFO then
 			local response = facebook.request( "me" )
 			printTable(response)
@@ -214,33 +215,25 @@ local function listener( event )
 		end
 
 		-- This code posts a photo image to your Facebook Wall
-		--
+		-- It includes a message as well
 		if fbCommand == POST_PHOTO then
+			local time = os.date("*t")
 			local attachment = {
 				name = "Developing a Facebook Connect app using the Corona SDK!",
 				link = "http://www.coronalabs.com/links/forum",
 				caption = "Link caption",
 				description = "Corona SDK for developing iOS and Android apps with the same code base.",
 				picture = "http://www.coronalabs.com/links/demo/Corona90x90.png",
-				actions = json.encode( { { name = "Learn More", link = "http://coronalabs.com" } } )
+				actions = json.encode( { { name = "Learn More", link = "http://coronalabs.com" } } ),
+				message = "Posting from Corona SDK! " ..
+					os.date("%A, %B %e")  .. ", " .. time.hour .. ":"
+					.. time.min .. "." .. time.sec
 			}
 		
 			local response = facebook.request( "me/feed", "POST", attachment )		-- posting the photo
 			printTable(response)
 		end
 		
-		-- This code posts a message to your Facebook Wall
-		if fbCommand == POST_MSG then
-			local time = os.date("*t")
-			local postMsg = {
-				message = "Posting from Corona SDK! " ..
-					os.date("%A, %B %e")  .. ", " .. time.hour .. ":"
-					.. time.min .. "." .. time.sec
-			}
-		
-			local response = facebook.request( "me/feed", "POST", postMsg )		-- posting the message
-			printTable(response)
-		end
 -----------------------------------------------------------------------------------------
 
     elseif ( "request" == event.type ) then
@@ -254,15 +247,17 @@ local function listener( event )
 				statusMessage.textObject.text = response.name
 				printTable( response, "User Info", 3 )
 				print( "name", response.name )
+				loggedInUserID = response.id
 				
+			elseif fbCommand == GET_TAGGABLE_FRIENDS then
+				printTable( response, "friends", 3 )
+				statusMessage.textObject.text = "Got taggable friends!"
+				taggableFriends = response.data
+
 			elseif fbCommand == POST_PHOTO then
 				printTable( response, "photo", 3 )
 				statusMessage.textObject.text = "Photo Posted"
-							
-			elseif fbCommand == POST_MSG then
-				printTable( response, "message", 3 )
-				statusMessage.textObject.text = "Message Posted"
-				
+
 			else
 				-- Unknown command response
 				print( "Unknown command response" )
@@ -300,11 +295,23 @@ facebook.login( appId, listener )
 -- ***
 -- ************************ Buttons Functions ********************************
 -- ***
+local function logOut_onRelease( event )
+	-- call the login method of the FB session object, passing in a handler
+	-- to be called upon successful login.
+	fbCommand = LOGOUT
+	facebook.logout()
+end
+
+local function publishInstall_onRelease( event )
+	fbCommand = PUBLISH_INSTALL
+	facebook.publishInstall()
+end
+
 local function postPhoto_onRelease( event )
 	-- call the login method of the FB session object, passing in a handler
 	-- to be called upon successful login.
 	fbCommand = POST_PHOTO
-	facebook.login( appId, listener,  {"publish_actions", "rsvp_event", "user_about_me"}  )
+	facebook.login( appId, listener,  {"publish_actions"}  )
 end
 
 local function getInfo_onRelease( event )
@@ -314,17 +321,10 @@ local function getInfo_onRelease( event )
 	facebook.login( appId, listener, {"publish_actions"}  )
 end
 
-local function postMsg_onRelease( event )
+local function getTaggableFriends_onRelease( event )
 	-- call the login method of the FB session object, passing in a handler
 	-- to be called upon successful login.
-	fbCommand = POST_MSG
-	facebook.login( appId, listener, {"publish_actions"} )
-end
-
-local function showFeedDialog_onRelease( event )
-	-- call the login method of the FB session object, passing in a handler
-	-- to be called upon successful login.
-	fbCommand = SHOW_FEED_DIALOG
+	fbCommand = GET_TAGGABLE_FRIENDS
 	facebook.login( appId, listener, {"publish_actions"}  )
 end
 
@@ -342,136 +342,9 @@ local function showRequestDialog_onRelease( event )
 	facebook.login( appId, listener, {"publish_actions"}  )
 end
 
-local function publishInstall_onRelease( event )
-	fbCommand = PUBLISH_INSTALL
-	facebook.publishInstall()
-end
-
-local function logOut_onRelease( event )
-	-- call the login method of the FB session object, passing in a handler
-	-- to be called upon successful login.
-	fbCommand = LOGOUT
-	print("Hit the logout button")
-	facebook.logout()
-end
-
 -- ***
 -- ************************ Create Buttons ********************************
 -- ***
-
--- "Post Photo with Facebook" button
-local postPhotoButton = widget.newButton
-{
-	defaultFile = "fbButton184.png",
-	overFile = "fbButtonOver184.png",
-	label = "Post Photo",
-	labelColor = 
-	{ 
-		default = { 255, 255, 255 }, 
-	},
-	fontSize = 12,
-	onRelease = postPhoto_onRelease,
-}
-postPhotoButton.x = ButtonOrigX
-postPhotoButton.y = ButtonOrigY
-
-
--- "Post Message with Facebook" button
-local postMessageButton = widget.newButton
-{
-	defaultFile = "fbButton184.png",
-	overFile = "fbButtonOver184.png",
-	label = "Post Msg",
-	labelColor = 
-	{ 
-		default = { 255, 255, 255 }, 
-	},
-	fontSize = 12,
-	onRelease = postMsg_onRelease,
-}
-postMessageButton.x = ButtonOrigX
-postMessageButton.y = ButtonOrigY + ButtonYOffset * 1
-
-
--- "Show Feed Dialog Info with Facebook" button
-local showFeedDialogButton = widget.newButton
-{
-	defaultFile = "fbButton184.png",
-	overFile = "fbButtonOver184.png",
-	label = "Show Feed Dialog",
-	labelColor = 
-	{ 
-		default = { 255, 255, 255 }, 
-	},
-	fontSize = 12,
-	onRelease = showFeedDialog_onRelease,
-}
-showFeedDialogButton.x = ButtonOrigX
-showFeedDialogButton.y = ButtonOrigY + ButtonYOffset * 2
-
--- "Show Feed with Photo with Facebook" button
-local showFeedWPhotoDialogButton = widget.newButton
-{
-	defaultFile = "fbButton184.png",
-	overFile = "fbButtonOver184.png",
-	label = "Show Feed W/ Photo",
-	labelColor = 
-	{ 
-		default = { 255, 255, 255 }, 
-	},
-	fontSize = 12,
-	onRelease = showFeedWPhotoDialog_onRelease,
-}
-showFeedWPhotoDialogButton.x = ButtonOrigX
-showFeedWPhotoDialogButton.y = ButtonOrigY + ButtonYOffset * 3
-
--- "Show Request Dialog with Facebook" button
-local showRequestDialogButton = widget.newButton
-{
-	defaultFile = "fbButton184.png",
-	overFile = "fbButtonOver184.png",
-	label = "Show Request Dialog",
-	labelColor = 
-	{ 
-		default = { 255, 255, 255 }, 
-	},
-	fontSize = 12,
-	onRelease = showRequestDialog_onRelease,
-}
-showRequestDialogButton.x = ButtonOrigX
-showRequestDialogButton.y = ButtonOrigY + ButtonYOffset * 4
-
--- "Get User Info with Facebook" button
-local getInfoButton = widget.newButton
-{
-	defaultFile = "fbButton184.png",
-	overFile = "fbButtonOver184.png",
-	label = "Get User",
-	labelColor = 
-	{ 
-		default = { 255, 255, 255 }, 
-	},
-	fontSize = 12,
-	onRelease = getInfo_onRelease,
-}
-getInfoButton.x = ButtonOrigX
-getInfoButton.y = ButtonOrigY + ButtonYOffset * 5
-
--- "Publish Install with Facebook" button
-local publishInstallButton = widget.newButton
-{
-	defaultFile = "fbButton184.png",
-	overFile = "fbButtonOver184.png",
-	label = "Publish Install",
-	labelColor = 
-	{ 
-		default = { 255, 255, 255 }, 
-	},
-	fontSize = 12,
-	onRelease = publishInstall_onRelease,
-}
-publishInstallButton.x = ButtonOrigX
-publishInstallButton.y = ButtonOrigY + ButtonYOffset * 6
 
 -- "Logout with Facebook" button
 local logoutButton = widget.newButton
@@ -488,3 +361,99 @@ local logoutButton = widget.newButton
 }
 logoutButton.x = ButtonOrigX
 logoutButton.y = 25
+
+-- "Publish Install with Facebook" button
+local publishInstallButton = widget.newButton
+{
+	defaultFile = "fbButton184.png",
+	overFile = "fbButtonOver184.png",
+	label = "Publish Install",
+	labelColor = 
+	{ 
+		default = { 255, 255, 255 }, 
+	},
+	fontSize = 12,
+	onRelease = publishInstall_onRelease,
+}
+publishInstallButton.x = ButtonOrigX
+publishInstallButton.y = ButtonOrigY
+
+-- "Post Photo with Facebook" button
+local postPhotoButton = widget.newButton
+{
+	defaultFile = "fbButton184.png",
+	overFile = "fbButtonOver184.png",
+	label = "Post Photo",
+	labelColor = 
+	{ 
+		default = { 255, 255, 255 }, 
+	},
+	fontSize = 12,
+	onRelease = postPhoto_onRelease,
+}
+postPhotoButton.x = ButtonOrigX
+postPhotoButton.y = ButtonOrigY + ButtonYOffset
+
+-- "Get User Info with Facebook" button
+local getInfoButton = widget.newButton
+{
+	defaultFile = "fbButton184.png",
+	overFile = "fbButtonOver184.png",
+	label = "Get User",
+	labelColor = 
+	{ 
+		default = { 255, 255, 255 }, 
+	},
+	fontSize = 12,
+	onRelease = getInfo_onRelease,
+}
+getInfoButton.x = ButtonOrigX
+getInfoButton.y = ButtonOrigY + ButtonYOffset * 2
+
+-- "Get Taggable Friends" button
+local getTaggableFriendsButton = widget.newButton
+{
+	defaultFile = "fbButton184.png",
+	overFile = "fbButtonOver184.png",
+	label = "Get Taggable Friends",
+	labelColor = 
+	{ 
+		default = { 255, 255, 255 }, 
+	},
+	fontSize = 12,
+	onRelease = getTaggableFriends_onRelease,
+}
+getTaggableFriendsButton.x = ButtonOrigX
+getTaggableFriendsButton.y = ButtonOrigY + ButtonYOffset * 3
+
+-- "Show Feed with Photo with Facebook" button
+local showFeedWPhotoDialogButton = widget.newButton
+{
+	defaultFile = "fbButton184.png",
+	overFile = "fbButtonOver184.png",
+	label = "Show Feed W/ Photo",
+	labelColor = 
+	{ 
+		default = { 255, 255, 255 }, 
+	},
+	fontSize = 12,
+	onRelease = showFeedWPhotoDialog_onRelease,
+}
+showFeedWPhotoDialogButton.x = ButtonOrigX
+showFeedWPhotoDialogButton.y = ButtonOrigY + ButtonYOffset * 4
+
+-- "Show Request Dialog with Facebook" button
+local showRequestDialogButton = widget.newButton
+{
+	defaultFile = "fbButton184.png",
+	overFile = "fbButtonOver184.png",
+	label = "Show Request Dialog",
+	labelColor = 
+	{ 
+		default = { 255, 255, 255 }, 
+	},
+	fontSize = 12,
+	onRelease = showRequestDialog_onRelease,
+}
+showRequestDialogButton.x = ButtonOrigX
+showRequestDialogButton.y = ButtonOrigY + ButtonYOffset * 5

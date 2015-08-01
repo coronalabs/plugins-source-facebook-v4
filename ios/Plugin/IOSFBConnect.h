@@ -21,10 +21,10 @@
 
 // ----------------------------------------------------------------------------
 
-@class Facebook;
 // Facebook SDK 3.19
+//@class Facebook;
 //@class FBSession;
-@class IOSFBConnectDelegate;
+//@class IOSFBConnectDelegate;
 @class NSArray;
 @class NSError;
 @class NSString;
@@ -66,25 +66,35 @@ class IOSFBConnect : public FBConnect
 		void Dispatch( const FBConnectEvent& e ) const;
 
 	public:
-		virtual void Login( const char *appId, const char *permissions[], int numPermissions ) const;
+		virtual void GetCurrentAccessToken( lua_State *L ) const;
+		// Facebook SDK 4+
+		virtual void Login( const char *permissions[], int numPermissions ) const;
+		// Facebook SDK 3.19
+		//virtual bool IsAccessDenied() const;
+		//virtual void Login( const char *appId, const char *permissions[], int numPermissions ) const;
 		virtual void Logout() const;
+		// Facebook SDK 4+
+		virtual void PublishInstall() const;
+		// Facebook SDK 3.19
+		//virtual void PublishInstall( const char *appId ) const;
 		virtual void Request( lua_State *L, const char *path, const char *httpMethod, int x ) const;
 		virtual void ShowDialog( lua_State *L, int index ) const;
-		virtual void PublishInstall( const char *appId ) const;
-		virtual bool IsAccessDenied() const;
 
 	protected:
-		void LoginAsync( NSString *applicationId, NSArray *readPermissions, NSArray *publishPermissions ) const;
+		// Facebook SDK 4+
+		void LoginAsync( NSArray *readPermissions, NSArray *publishPermissions ) const;
+		// Facebook SDK 3.19
+		//void LoginAsync( NSString *applicationId, NSArray *readPermissions, NSArray *publishPermissions ) const;
 
 	private:
+		static void CreateLuaTableFromStringArray(lua_State *L, NSArray* array);
 		static bool IsPublishPermission(NSString *permission);
 	
 	private:
 		id< CoronaRuntime > fRuntime;
 		// Facebook SDK 3.19
 		//mutable FBSession *fSession;
-		mutable Facebook *fFacebook; // Need this to support Dialogs
-		// Facebook SDK 3.19
+		//mutable Facebook *fFacebook; // Need this to support Dialogs
 		//IOSFBConnectDelegate *fFacebookDelegate;
 		id fConnectionDelegate;
 		mutable bool fHasObserver;
