@@ -78,7 +78,7 @@ fi
 checkError
 
 echo "pushd Android Facebook SDK"
-pushd ../sdk/android/4.4.0/facebook > /dev/null
+pushd ../sdk/android/4.5.0/facebook > /dev/null
 echo "Create a local.properties for the facebook sdk"
 "$SDK_PATH/tools/android" update project -p `pwd` --target android-21
 echo "ant clean"
@@ -128,9 +128,9 @@ if [ "$OUTPUT_PLUGIN_DIR_ANDROID" ]
 then
 	cp -v "$path/metadata.lua" "$OUTPUT_PLUGIN_DIR_ANDROID"
 	cp -v "$JAR_PATH" "$OUTPUT_PLUGIN_DIR_ANDROID"
-	cp -v "$path/../sdk/android/4.4.0/facebook/libs/"* "$OUTPUT_PLUGIN_DIR_ANDROID"
-	cp -v "$path/../sdk/android/4.4.0/facebook/bin/classes.jar" "$OUTPUT_PLUGIN_DIR_ANDROID/facebook_sdk.jar"
+	cp -v "$path/../sdk/android/4.5.0/facebook/libs/"* "$OUTPUT_PLUGIN_DIR_ANDROID"
+	cp -v "$path/../sdk/android/4.5.0/facebook/bin/classes.jar" "$OUTPUT_PLUGIN_DIR_ANDROID/facebook_sdk.jar"
 	mkdir -p "$OUTPUT_PLUGIN_DIR_ANDROID/resources/res"
-	cp -r "$path/../sdk/android/4.4.0/facebook/res/" "$OUTPUT_PLUGIN_DIR_ANDROID/resources/res"
+	cp -r "$path/../sdk/android/4.5.0/facebook/res/" "$OUTPUT_PLUGIN_DIR_ANDROID/resources/res"
 	cp -v "$path/package.txt" "$OUTPUT_PLUGIN_DIR_ANDROID/resources/"
 fi

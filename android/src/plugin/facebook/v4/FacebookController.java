@@ -105,9 +105,8 @@ public class FacebookController {
     private static int sLibRef;
     private static CallbackManager sCallbackManager;
     private static AccessTokenTracker sAccessTokenTracker;
-    private static String sPermissions[];
     private static CoronaRuntime sCoronaRuntime;
-    // TODO: Add this back in for getGrantedPermissions API
+    // TODO: Add this back in for automatic token refresh.
     //private static final AtomicBoolean accessTokenRefreshInProgress = new AtomicBoolean(false);
 
     // Dialogs
@@ -120,6 +119,7 @@ public class FacebookController {
     public static final String NO_RUNTIME_ERR_MSG = ": cannot continue without a CoronaRuntime. " +
             "User action or another thread may have destroyed it.";
     public static final String NO_LUA_STATE_ERR_MSG = ": the Lua state has died! Abort!";
+    public static final String DIALOG_CANCELLED_MSG = "Dialog was cancelled by user.";
     /**********************************************************************************************/
     /*************************************** Callbacks ********************************************/
     /**
@@ -134,89 +134,19 @@ public class FacebookController {
 
                     //Log.d("Corona", "Facebook login succeeded!");
 
-                    // Handle permissions as necessary
-                    // TODO: Refactor as a method for requestPermission API
-                    //Log.d("Corona", "Handle permissions");
-                    AccessToken myAccessToken = AccessToken.getCurrentAccessToken();
-                    if (myAccessToken == null) { // Shouldn't ever happen if login was successful
+                    AccessToken currentAccessToken = AccessToken.getCurrentAccessToken();
+                    if (currentAccessToken == null || // Should never happen if login was successful
+                            !loginResults.getAccessToken().equals(currentAccessToken)) {
                         Log.v("Corona", "ERROR: " + methodName + ": lost the access token. This " +
                                 "could be the result of another thread completing " +
                                 "facebook.logout() before this callback was invoked.");
                         return;
                     } else {
-                        // Remove the permissions we already have access to
-                        // so that we don't try to get access to them again
-                        // causing constant flashes on the screen
-                        //Log.d("Corona", "Scanning permissions list");
-                        Set grantedPermissions = myAccessToken.getPermissions();
-                        for (int i = 0; i < sPermissions.length; i++) {
-                            if (grantedPermissions.contains(sPermissions[i])) {
-                                sPermissions[i] = null;
-                            }
-                        }
+                        dispatchLoginFBConnectTask(methodName, FBLoginEvent.Phase.login,
+                                currentAccessToken.getToken(),
+                                toSecondsFromMilliseconds(
+                                        currentAccessToken.getExpires().getTime()));
                     }
-
-                    // The accessToken was successfully created
-                    List<String> permissionsToRequest = new LinkedList<String>();
-                    boolean readPermissions = false;
-
-                    // Look for read permissions so we can request them
-                    if (sPermissions != null) {
-                        //Log.d("Corona", "Found permissions that need to be requested again");
-                        for(int i = 0; i < sPermissions.length; i++) {
-                            if(!isPublishPermission(sPermissions[i]) && sPermissions[i] != null) {
-                                permissionsToRequest.add(sPermissions[i]);
-                                sPermissions[i] = null;
-                                readPermissions = true;
-                            }
-                        }
-
-                        // If there are no read permissions then we move on
-                        // to publish permissions so we can request them
-                        if (permissionsToRequest.isEmpty()) {
-                            for(int i = 0; i < sPermissions.length; i++) {
-                                if(isPublishPermission(sPermissions[i])
-                                        && sPermissions[i] != null) {
-                                    permissionsToRequest.add(sPermissions[i]);
-                                    sPermissions[i] = null;
-                                }
-                            }
-                        }
-                    }
-                    else {
-                        Log.v("Corona", "ERROR: " + methodName + ": Permissions held by this app" +
-                                " are null. Be sure to provide at least an empty permission list" +
-                                " to facebook.login().");
-                        return;
-                    }
-
-                    CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
-                    if (activity == null) {
-                        Log.v("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
-                        return;
-                    }
-
-                    // If there are some permissions we haven't requested yet then
-                    // we request them and set this object as the callback so we can
-                    // request the next set of permissions
-                    if (!permissionsToRequest.isEmpty()) {
-                        // This part is to request additional permissions
-                        if (readPermissions) {
-                            LoginManager.getInstance()
-                                    .logInWithReadPermissions(activity, permissionsToRequest);
-                        } else {
-                            LoginManager.getInstance()
-                                    .logInWithPublishPermissions(activity, permissionsToRequest);
-                        }
-
-                        // Since we're still requesting permissions,
-                        // we don't want to go back to the lua side yet
-                        return;
-                    }
-
-                    dispatchLoginFBConnectTask(methodName, FBLoginEvent.Phase.login,
-                            loginResults.getAccessToken().toString(),
-                            loginResults.getAccessToken().getExpires().getTime());
                 }
 
                 @Override
@@ -269,8 +199,7 @@ public class FacebookController {
                     String methodName = "FacebookController.shareCallback.onCancel()";
                     //Log.d("Corona", "Share dialog was Canceled");
 
-                    dispatchDialogFBConnectTask(methodName, "Share dialog was" +
-                            " cancelled by user", false, true);
+                    dispatchDialogFBConnectTask(methodName, DIALOG_CANCELLED_MSG, false, true);
                 }
 
                 @Override
@@ -322,8 +251,7 @@ public class FacebookController {
                     String methodName = "FacebookController.requestCallback.onCancel()";
                     //Log.d("Corona", "Request dialog cancelled by user");
 
-                    dispatchDialogFBConnectTask(methodName, "Request dialog was" +
-                            " cancelled by user", false, true);
+                    dispatchDialogFBConnectTask(methodName, DIALOG_CANCELLED_MSG, false, true);
                 }
 
                 @Override
@@ -436,6 +364,42 @@ public class FacebookController {
             Log.v("Corona", "ERROR: " + methodName + NO_RUNTIME_ERR_MSG);
             return null;
         }
+    }
+
+    // Converts a long in milliseconds to seconds
+    private static long toSecondsFromMilliseconds(long timeInMilliseconds) {
+        return timeInMilliseconds/1000;
+    }
+
+    // Creates a Lua table out of an array of strings.
+    // Leaves the Lua table on top of the stack.
+    private static void createLuaTableFromStringArray(String[] array) {
+        // Grab the method name for error messages:
+        String methodName = "FacebookController.createLuaTableFromStringArray()";
+
+        if (array == null) {
+            Log.v("Corona", "ERROR: " + methodName + ": cannot create a lua table from a null " +
+                    "array! Please pass in a non-null string array.");
+            return;
+        }
+
+        LuaState L = fetchLuaState();
+        if (L == null) {
+            Log.v("Corona", "ERROR: " + methodName + NO_LUA_STATE_ERR_MSG);
+            return;
+        }
+
+        L.newTable(0, 0);
+        for (int i = 0; i < array.length; i++) {
+            // Push this string to the top of the stack
+            L.pushString(array[i]);
+
+            // Assign this string to the table 2nd from the top of the stack.
+            // Lua arrays are 1-based so add 1 to index correctly.
+            L.rawSet(-2, i + 1);
+        }
+
+        // Result is on top of the lua stack.
     }
 
     protected static Bundle createFacebookBundle( Hashtable map ) {
@@ -567,6 +531,99 @@ public class FacebookController {
             e.printStackTrace();
         }
     }
+
+    private static void loginWithOnlyRequiredPermissions() {
+        // Grab the method name for error messages:
+        String methodName = "FacebookController.loginWithOnlyRequiredPermissions()";
+
+        CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
+        if (activity == null) {
+            Log.v("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
+            return;
+        }
+        //Log.d("Corona", "Actually log the user in with requried permissions");
+        // The "public_profile" permission as this is expected of facebook.
+        // We include the "user_friends" permission by default for legacy reasons.
+        LoginManager.getInstance().logInWithReadPermissions(activity,
+                Arrays.asList("public_profile", "user_friends"));
+        //Log.d("Corona", "<--Leaving facebook login");
+    }
+
+    private static void requestPermissions(final String permissions[]) {
+        // Grab the method name for error messages:
+        String methodName = "FacebookController.requestPermissions()";
+
+        if (permissions == null) {
+            Log.v("Corona", "ERROR: " + methodName + ": Permissions held by this app" +
+                    " are null. Be sure to provide at least an empty permission list" +
+                    " to facebook.login() before requesting permissions.");
+            return;
+        }
+
+        // Remove the permissions we already have access to
+        // so that we don't try to get access to them again
+        // causing constant flashes on the screen
+        //Log.d("Corona", "Scanning permissions list");
+        AccessToken currentAccessToken = AccessToken.getCurrentAccessToken();
+        if (currentAccessToken != null) {
+            Set grantedPermissions = currentAccessToken.getPermissions();
+            for (int i = 0; i < permissions.length; i++) {
+                if (grantedPermissions.contains(permissions[i])) {
+                    permissions[i] = null;
+                }
+            }
+        } else if (permissions.length == 0) {
+            // They still need to login, but aren't requesting any permissions.
+            loginWithOnlyRequiredPermissions();
+        } // else { // Need to request all the desired permissions again }
+
+        // Look for permissions to be requested
+        List<String> readPermissions = new LinkedList<String>();
+        List<String> publishPermissions = new LinkedList<String>();
+
+        //Log.d("Corona", "Found permissions that need to be requested again");
+        for (int i = 0; i < permissions.length; i++) {
+            if (permissions[i] != null) {
+                if (isPublishPermission(permissions[i])) {
+                    publishPermissions.add(permissions[i]);
+                } else {
+                    readPermissions.add(permissions[i]);
+                }
+                permissions[i] = null;
+            }
+        }
+
+        CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
+        if (activity == null) {
+            Log.v("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
+            return;
+        }
+
+        // If there are some permissions we haven't requested yet then we request them.
+        if (!readPermissions.isEmpty()) {
+            // Throw a warning if the user is trying to request
+            // read and publish permissions at the same time.
+            if (!publishPermissions.isEmpty()) {
+                Log.v("Corona", "WARNING: " + methodName + ": cannot process read and publish " +
+                        "permissions at the same time. Only the read permissions will be " +
+                        "requested.");
+            }
+            LoginManager.getInstance().logInWithReadPermissions(activity, readPermissions);
+        } else if (!publishPermissions.isEmpty()) {
+            LoginManager.getInstance().logInWithPublishPermissions(activity, publishPermissions);
+        } else if (currentAccessToken == null) {
+            // They still need to login, but were a jerk and passed in a permissions array
+            // containing only nulls. So login with only required permissions.
+            loginWithOnlyRequiredPermissions();
+        } else {
+            // We've already been granted all these permissions.
+            // Return sucessful login phase so Lua can move on.
+            //Log.d("Corona", "All Permissions have been granted!");
+            dispatchLoginFBConnectTask(methodName, FBLoginEvent.Phase.login,
+                    currentAccessToken.getToken(),
+                    toSecondsFromMilliseconds(currentAccessToken.getExpires().getTime()));
+        }
+    }
     /**********************************************************************************************/
     /********************************** API Implementations ***************************************/
     /**
@@ -611,8 +668,6 @@ public class FacebookController {
 
             L.pushBoolean(false);
             L.setField(-2, "isActive");
-
-            // TODO: Initialize grantedPermissions field
         }
 
         final AtomicBoolean finishedFBSDKInit = new AtomicBoolean(false);
@@ -689,7 +744,7 @@ public class FacebookController {
                                     }
                                     L.pushString(accessToken);
                                     //Log.d("Corona", "New Access Token: " + accessToken);
-                                    ////Log.d("Corona", "Checking the type of what's about to get " +
+                                    //Log.d("Corona", "Checking the type of what's about to get " +
                                     //        "pushed to lua, to track down Illegal type that's " +
                                     //        "getting here intermitently.");
                                     //L.checkType(-2, LuaType.TABLE);
@@ -731,6 +786,70 @@ public class FacebookController {
     }
 
     /**
+     * facebook.getCurrentAccessToken entry point
+     */
+    public static void facebookGetCurrentAccessToken() {
+        // Grab the method name for error messages:
+        String methodName = "FacebookController.facebookGetCurrentAccessToken()";
+
+        LuaState L = fetchLuaState();
+        if (L == null) {
+            Log.v("Corona", "ERROR: " + methodName + NO_LUA_STATE_ERR_MSG);
+            return;
+        }
+
+        AccessToken currentAccessToken = AccessToken.getCurrentAccessToken();
+        if (currentAccessToken != null) {
+            // Table of access token data to be returned
+            L.newTable(0, 7);
+
+            // Token string - like in fbconnect event
+            L.pushString(currentAccessToken.getToken());
+            L.setField(-2, "token");
+
+            // Expiration date - like in fbconnect event
+            L.pushNumber(toSecondsFromMilliseconds(currentAccessToken.getExpires().getTime()));
+            L.setField(-2, "expiration");
+
+            // Refresh date
+            L.pushNumber(toSecondsFromMilliseconds(currentAccessToken.getLastRefresh().getTime()));
+            L.setField(-2, "lastRefreshed");
+
+            // App Id
+            L.pushString(currentAccessToken.getApplicationId());
+            L.setField(-2, "appId");
+
+            // User Id
+            L.pushString(currentAccessToken.getUserId());
+            L.setField(-2, "userId");
+
+            // Granted permissions
+            Object[] grantedPermissions = currentAccessToken.getPermissions().toArray();
+            createLuaTableFromStringArray(Arrays.copyOf(
+                    grantedPermissions, grantedPermissions.length, String[].class));
+
+            // Assign the granted permissions table to the access token table,
+            // which is now 2nd from the top of the stack.
+            L.setField(-2, "grantedPermissions");
+
+            // Declined permissions
+            Object[] declinedPermissions =
+                    currentAccessToken.getDeclinedPermissions().toArray();
+            createLuaTableFromStringArray(Arrays.copyOf(
+                    declinedPermissions, declinedPermissions.length, String[].class));
+
+            // Assign the declined permissions table to the access token table,
+            // which is now 2nd from the top of the stack.
+            L.setField(-2, "declinedPermissions");
+
+            // Now our table of access token data is at the top of the stack
+        } else {
+            // Return nil
+            L.pushNil();
+        }
+    }
+
+    /**
      * facebook.login() entry point
      * @param permissions: An array of permissions to be requested if needed.
      */
@@ -739,27 +858,17 @@ public class FacebookController {
         String methodName = "FacebookController.facebookLogin()";
         //Log.d("Corona", "-->In facebook login");
 
-        CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
-        if (activity == null) {
-            Log.v("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
-            return;
-        }
-
         if (permissions == null) {
             Log.v("Corona", "ERROR: " + methodName + ": Can't set permissions to null! " +
                     "Be sure to pass in an initialized array of permissions.");
             return;
+        } else if (permissions.length == 0) {
+            loginWithOnlyRequiredPermissions();
         } else {
-            // Keep reference to our permission set.
-            sPermissions = permissions;
+            //Log.d("Corona", "Login with extended permissions");
+            // We want to request some extended permissions.
+            requestPermissions(permissions);
         }
-
-        //Log.d("Corona", "Actually log the user in");
-        // Initially login with the "public_profile" permission as this is expected of facebook.
-        // We include the "user_friends" permission by default for legacy reasons.
-        LoginManager.getInstance().logInWithReadPermissions(activity,
-                Arrays.asList("public_profile", "user_friends"));
-        //Log.d("Corona", "<--Leaving facebook login");
     }
 
     private static class FacebookActivityResultHandler
@@ -807,39 +916,6 @@ public class FacebookController {
 
         dispatchLoginFBConnectTask(methodName, FBLoginEvent.Phase.logout, null, 0);
     }
-
-    // TODO: Finish Implementing this
-//    public static Set getGrantedPermissions() {
-//        // Validate
-//        CoronaActivity activity = com.ansca.corona.CoronaEnvironment.getCoronaActivity();
-//        if (activity == null) {
-//            return null;
-//        }
-//
-//        final AccessToken currentAccessToken = AccessToken.getCurrentAccessToken();
-//        if (currentAccessToken == null) {
-//            return null;
-//        }
-//
-//        accessTokenRefreshInProgress.set(true);
-//
-//        // The facebook documentation says this should only be run on the UI thread
-//        activity.runOnUiThread( new Runnable() {
-//            @Override
-//            public void run() {
-//                // Once complete, this will invoke AccessTokenTracker.onAccessTokenChanged()
-//                //Log.d("Corona", "Beginning Access Token Refresh in facebook.getGrantedPermissions()");
-//                currentAccessToken.refreshCurrentAccessTokenAsync();
-//            }
-//        });
-//
-//        // Spin lock to wait for onAccessTokenChanged() to complete
-//        // Do this with Thread.yield() to not slam the CPU for no reason.
-//        while(accessTokenRefreshInProgress.get()) {Thread.yield();}
-//
-//        //Log.d("Corona", "Access token refresh complete! Now return the updated list of permissions");
-//        return AccessToken.getCurrentAccessToken().getPermissions();
-//    }
 
     /**
      * facebook.request() entry point
@@ -966,7 +1042,11 @@ public class FacebookController {
         LuaState L = fetchLuaState();
         if (L != null && CoronaLua.isListener(L, -1, "")) {
             listener = CoronaLua.newRef(L, -1);
+        } else if (L == null) {
+            Log.v("Corona", "ERROR: " + methodName + NO_LUA_STATE_ERR_MSG);
+            return;
         }
+
         final int finalListener = listener;
 
         // Do UI things on UI thread

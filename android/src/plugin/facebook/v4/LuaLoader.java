@@ -55,7 +55,7 @@ public class LuaLoader implements JavaFunction {
 		mRuntime = CoronaRuntimeProvider.getRuntimeByLuaState(L);
 
 		NamedJavaFunction[] luaFunctions = new NamedJavaFunction[] {
-				//new GetGrantedPermissionsWrapper(), TODO: Finish implementing this
+				new GetCurrentAccessTokenWrapper(),
 				new LoginWrapper(),
 				new LogoutWrapper(),
 				new PublishInstallWrapper(),
@@ -72,28 +72,21 @@ public class LuaLoader implements JavaFunction {
 		return 1;
 	}
 
-	// TODO: Finish implementing this
-//	private class GetGrantedPermissionsWrapper implements NamedJavaFunction {
-//		@Override
-//		public String getName() {
-//			return "getGrantedPermissions";
-//		}
-//
-//		@Override
-//		public int invoke(LuaState L) {
-//			// Have facebook controller refresh the list of permissions and return that in Java form
-//			Set grantedPermissions = FacebookController.getGrantedPermissions();
-//			// Print out permissions for debugging purposes
-//			if (grantedPermissions != null) {
-//				Object[] permissionsArray = grantedPermissions.toArray();
-//				for (int i = 0; i < permissionsArray.length; i++) {
-//					//Log.d("Corona", "Granted Permission[" + i + "]: " + permissionsArray[i]);
-//				}
-//			}
-//			// Convert to Lua Table and return.
-//			return 1;
-//		}
-//	}
+	private class GetCurrentAccessTokenWrapper implements NamedJavaFunction {
+		@Override
+		public String getName() {
+			return "getCurrentAccessToken";
+		}
+
+		@Override
+		public int invoke(LuaState L) {
+
+			FacebookController.facebookGetCurrentAccessToken();
+
+			// Return the Lua table now atop the stack.
+			return 1;
+		}
+	}
 
 	private class LoginWrapper implements NamedJavaFunction {
 		@Override
