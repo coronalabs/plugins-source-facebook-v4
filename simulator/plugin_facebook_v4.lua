@@ -16,9 +16,12 @@ lib.publishInstall = defaultFunction
 lib.accessDenied = defaultFunction
 
 -- New Facebook-v4 APIs
-lib.currentAccessToken = defaultFunction
+lib.getCurrentAccessToken = defaultFunction
 lib.isActive = defaultFunction
 lib.setFBConnectListener= defaultFunction
+
+-- Introduced in Android Beta v1 and deprecated later
+lib.currentAccessToken = defaultFunction
 
 -- Return an instance
 return lib

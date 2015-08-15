@@ -52,32 +52,6 @@ FBConnect::Finalize( lua_State *L )
 	CoronaLuaDeleteRef( L, fListener );
 	fListener = NULL;
 }
-	
-/*
-void
-FBConnect::Login( const char *appId, const char *permissions[], int numPermissions ) const
-{
-	CORONA_LOG_WARNING( "facebook.login() is not supported on this platform." );
-}
-
-void
-FBConnect::Logout() const
-{
-	CORONA_LOG_WARNING( "facebook.logout() is not supported on this platform." );
-}
-
-void
-FBConnect::Request( lua_State *L, const char *path, const char *httpMethod, int index ) const
-{
-	CORONA_LOG_WARNING( "facebook.request() is not supported on this platform." );
-}
-
-void
-FBConnect::ShowDialog( lua_State *L, int index ) const
-{
-	CORONA_LOG_WARNING( "facebook.showDialog() is not supported on this platform." );
-}
-*/
 
 // ----------------------------------------------------------------------------
 

@@ -6,7 +6,7 @@
 //
 
 // TODO: Determine how this will work for the plugin.
-#import <FBSDKCoreKit/FBSDKCoreKit.h>
+//#import <FBSDKCoreKit/FBSDKCoreKit.h>
 
 #import "AppCoronaDelegate.h"
 
@@ -53,28 +53,28 @@
 */
 
 
-- (void)applicationDidBecomeActive:(UIApplication *)application
-{
-	// Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
-	
-	// TODO: Determine how this will work for the plugin
-	[FBSDKAppEvents activateApp];
-	
-}
-
-// TODO: Determine how this will work for the plugin
-- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-	return [[FBSDKApplicationDelegate sharedInstance] application:application
-																	didFinishLaunchingWithOptions:launchOptions];
-}
-
-// TODO: Determine how this will work for the plugin
-- (BOOL)application:(UIApplication *)application openURL:(NSURL *)url sourceApplication:(NSString *)sourceApplication annotation:(id)annotation {
-	return [[FBSDKApplicationDelegate sharedInstance] application:application
-																												openURL:url
-																							sourceApplication:sourceApplication
-																										 annotation:annotation];
-}
+//- (void)applicationDidBecomeActive:(UIApplication *)application
+//{
+//	// Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+//	
+//	// TODO: Determine how this will work for the plugin
+//	[FBSDKAppEvents activateApp];
+//	
+//}
+//
+//// TODO: Determine how this will work for the plugin
+//- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+//	return [[FBSDKApplicationDelegate sharedInstance] application:application
+//																	didFinishLaunchingWithOptions:launchOptions];
+//}
+//
+//// TODO: Determine how this will work for the plugin
+//- (BOOL)application:(UIApplication *)application openURL:(NSURL *)url sourceApplication:(NSString *)sourceApplication annotation:(id)annotation {
+//	return [[FBSDKApplicationDelegate sharedInstance] application:application
+//																												openURL:url
+//																							sourceApplication:sourceApplication
+//																										 annotation:annotation];
+//}
 
 /*
 - (void)applicationWillTerminate:(UIApplication *)application

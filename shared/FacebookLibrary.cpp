@@ -93,7 +93,7 @@ FacebookLibrary::ValueForKey( lua_State *L )
 
 	Self *library = ToLibrary( L );
 	const char *key = luaL_checkstring( L, 2 );
-	// Facebook SDK 4+
+
 	if ( 0 == strcmp( "isActive", key ) )
 	{
 		// Unlike Android, we don't have to wait for the
@@ -101,11 +101,10 @@ FacebookLibrary::ValueForKey( lua_State *L )
 		// So facebook.isActive is always true!
 		lua_pushboolean( L, true );
 	}
-	// Facebook SDK 3.19
-//	if ( 0 == strcmp( "accessDenied", key ) )
-//	{
-//		lua_pushboolean( L, library->GetFBConnect()->IsAccessDenied() );
-//	}
+	else if ( 0 == strcmp( "accessDenied", key ) )
+	{
+		lua_pushboolean( L, library->GetFBConnect()->IsAccessDenied() );
+	}
 	else
 	{
 		result = 0;
@@ -187,18 +186,18 @@ FacebookLibrary::getCurrentAccessToken( lua_State *L )
 	return 1;
 }
 
-// Facebook SDK 4+
-// [Lua] facebook.login( [listener] [, permissions] )
+// [Lua] facebook.login( [listener,] [permissions] )
+// TODO: Refactor facebook.login) to accept a params table.
 int
 FacebookLibrary::login( lua_State *L )
 {
-	const char methodName[] = "facebook.login()";
+	const char functionName[] = "facebook.login()";
 	
 	Self *library = ToLibrary( L );
 	FBConnect *connect = library->GetFBConnect();
 	
 	// Parse args if there are any
-	if (lua_gettop(L))
+	if ( lua_gettop( L ) )
 	{
 		int index = 1;
 		
@@ -207,7 +206,8 @@ FacebookLibrary::login( lua_State *L )
 		if ( LUA_TSTRING == firstArgType || LUA_TNUMBER == firstArgType )
 		{
 			// Warn the user about using deprecated login API
-			CORONA_LOG_WARNING("%s%s", methodName, kAppIdWarning);
+			CORONA_LOG_WARNING( "%s%s", functionName, kAppIdWarning );
+			
 			// Process the remaining arguments
 			index++;
 		}
@@ -219,7 +219,7 @@ FacebookLibrary::login( lua_State *L )
 			index++;
 		}
 		
-		// Check for a perissions table.
+		// Check for a permissions table.
 		const char **permissions = NULL;
 		int numPermissions = 0;
 		if ( lua_istable( L, index ) )
@@ -237,9 +237,18 @@ FacebookLibrary::login( lua_State *L )
 				permissions[i] = value;
 				lua_pop( L, 1 );
 			}
+			index++;
 		}
 		
-		connect->Login( permissions, numPermissions );
+		// TODO: Refactor native login to be part of a params table passed to facebook.login().
+		// See if we want to use native login
+		bool attemptNativeLogin = false;
+		if ( lua_isboolean( L, index ) )
+		{
+			attemptNativeLogin = lua_toboolean( L, index );
+		}
+		
+		connect->Login( permissions, numPermissions, attemptNativeLogin );
 		
 		if ( permissions )
 		{
@@ -249,68 +258,11 @@ FacebookLibrary::login( lua_State *L )
 	else
 	{
 		// Login without arguments
-		connect->Login( NULL, 0 );
+		connect->Login( NULL, 0, false );
 	}
 
 	return 0;
 }
-
-// Facebook SDK 3.19
-//// [Lua] facebook.login( appId, listener [, permissions] )
-//int
-//FacebookLibrary::login( lua_State *L )
-//{
-//	int firstArgType = lua_type( L, 1 );
-//	if ( LUA_TSTRING == firstArgType || LUA_TNUMBER == firstArgType )
-//	{
-//		const char *appId = lua_tostring( L, 1 );
-//
-//		const char **permissions = NULL;
-//		int numPermissions = 0;
-//		if ( lua_istable( L, 3 ) )
-//		{
-//			numPermissions = (int)lua_objlen( L, 3 );
-//			permissions = (const char **)malloc( sizeof( char*) * numPermissions );
-//
-//			for ( int i = 0; i < numPermissions; i++ )
-//			{
-//				// Lua arrays are 1-based, so add 1 to index passed to lua_rawgeti()
-//				lua_rawgeti( L, 3, i + 1 ); // push permissions[i]
-//
-//				// TODO: This is broken. Cannot store pointer to value that will be popped???
-//				const char *value = lua_tostring( L, -1 );
-//				permissions[i] = value;
-//				lua_pop( L, 1 );
-//			}
-//		}
-//
-//		if ( appId )
-//		{
-//			Self *library = ToLibrary( L );
-//			FBConnect *connect = library->GetFBConnect();
-//			if ( FBConnectEvent::IsListener( L, 2 ) )
-//			{
-//				connect->SetListener( L, 2 );
-//				connect->Login( appId, permissions, numPermissions );
-//			}
-//			else
-//			{
-//				CORONA_LOG_ERROR( "Second argument to facebook.login() should be an 'fbconnect' listener." );
-//			}
-//		}
-//
-//		if ( permissions )
-//		{
-//			free( permissions );
-//		}
-//	}
-//	else
-//	{
-//		CORONA_LOG_ERROR( "First argument to facebook.login() should be the facebook app ID." );
-//	}
-//
-//	return 0;
-//}
 
 // [Lua] facebook.logout()
 int
@@ -324,14 +276,16 @@ FacebookLibrary::logout( lua_State *L )
 	return 0;
 }
 
-// Facebook SDK 4+
 // [Lua] facebook.publishInstall( )
 int
 FacebookLibrary::publishInstall( lua_State *L )
 {
-	if ( lua_gettop(L) )
+	const char functionName[] = "facebook.publishInstall()";
+	
+	if ( lua_gettop( L ) )
 	{
-		
+		// Warn the user about using deprecated publishInstall API
+		CORONA_LOG_WARNING( "%s%s", functionName, kAppIdWarning );
 	}
 	
 	Self *library = ToLibrary( L );
@@ -341,32 +295,7 @@ FacebookLibrary::publishInstall( lua_State *L )
 	
 	return 0;
 }
-	
-// Facebook SDK 3.19
-// [Lua] facebook.publishInstall( appId )
-//int
-//FacebookLibrary::publishInstall( lua_State *L )
-//{
-//	if ( LUA_TSTRING == lua_type( L, 1 ) )
-//	{
-//		const char *appId = lua_tostring( L, 1 );
-//		
-//		if ( appId )
-//		{
-//			Self *library = ToLibrary( L );
-//			FBConnect *connect = library->GetFBConnect();
-//			
-//			connect->PublishInstall( appId );
-//		}
-//	}
-//	else
-//	{
-//		CORONA_LOG_ERROR( "First argument to facebook.publishInstall() should be a string." );
-//	}
-//	
-//	return 0;
-//}
-	
+
 // [Lua] facebook.request( path [, httpMethod, params] )
 int
 FacebookLibrary::request( lua_State *L )
@@ -385,6 +314,8 @@ FacebookLibrary::request( lua_State *L )
 int
 FacebookLibrary::setFBConnectListener( lua_State *L )
 {
+	const char functionName[] = "facebook.setFBConnectListener()";
+	
 	Self *library = ToLibrary( L );
 	FBConnect *connect = library->GetFBConnect();
 	if ( FBConnectEvent::IsListener( L, 1 ) )
@@ -393,7 +324,7 @@ FacebookLibrary::setFBConnectListener( lua_State *L )
 	}
 	else
 	{
-		CORONA_LOG_ERROR( "First argument to facebook.setFBConnectListener should be a listener." );
+		CORONA_LOG_ERROR( "%s%s", functionName, ": Please provide a listener." );
 	}
 	return 0;
 }

@@ -45,16 +45,10 @@ class FBConnect
 
 	public:
 		virtual void GetCurrentAccessToken( lua_State *L ) const = 0;
-		// Facebook SDK 4+
-		virtual void Login( const char *permissions[], int numPermissions ) const = 0;
-		// Facebook SDK 3.19
-		//virtual bool IsAccessDenied() const = 0;
-		//virtual void Login( const char *appId, const char *permissions[b], int numPermissions ) const = 0;
+		virtual void Login( const char *permissions[], int numPermissions, bool attemptNativeLogin) const = 0;
+		virtual bool IsAccessDenied() const = 0;
 		virtual void Logout() const = 0;
-		// Facebook SDK 4+
 		virtual void PublishInstall() const = 0;
-		// Facebook SDK 3.19
-		//virtual void PublishInstall( const char *appId ) const = 0;
 		virtual void Request( lua_State *L, const char *path, const char *httpMethod, int x ) const = 0;
 		virtual void ShowDialog( lua_State *L, int index ) const = 0;
 
