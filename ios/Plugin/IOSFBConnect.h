@@ -59,7 +59,7 @@ class IOSFBConnect : public FBConnect
 		void Dispatch( const FBConnectEvent& e ) const;
 
 	public:
-		virtual void GetCurrentAccessToken( lua_State *L ) const;
+		virtual int GetCurrentAccessToken( lua_State *L ) const;
 		virtual void Login( const char *permissions[], int numPermissions, bool attempNativeLogin ) const;
 		virtual bool IsAccessDenied() const;
 		virtual void Logout() const;
@@ -74,7 +74,7 @@ class IOSFBConnect : public FBConnect
 		void HandleRequestPermissionsResponse( NSArray *permissionsToVerify, FBSDKLoginManagerLoginResult *result, NSError *error ) const;
 
 	private:
-		static void CreateLuaTableFromStringArray( lua_State *L, NSArray* array );
+		static int CreateLuaTableFromStringArray( lua_State *L, NSArray* array );
 		static bool IsPublishPermission( NSString *permission );
 		static bool IsShareAction( NSString *action );
 	

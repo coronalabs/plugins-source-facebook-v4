@@ -426,28 +426,29 @@ IOSFBConnect::Dispatch( const FBConnectEvent& e ) const
 
 // Creates a Lua table out of an NSArray with NSStrings inside.
 // Leaves the Lua table on top of the stack.
-void
+int
 IOSFBConnect::CreateLuaTableFromStringArray( lua_State *L, NSArray *array )
 {
 	const char functionName[] = "IOSFBConnect::CreateLuaTableFromStringArray()";
 	
 	if ( ! array ) {
 		CORONA_LOG_ERROR( "%s%s", functionName, ": cannot create a lua table from a nil array! Please pass in a non-nil string array.");
-		return;
+		return 0;
 	}
 	
-	lua_newtable(L);
+	lua_createtable( L, (int)array.count, 0 );
 	for (int i = 0; i < array.count; i++)
 	{
 		// Push this string to the top of the stack
-		lua_pushstring(L, [array[i] UTF8String]);
+		lua_pushstring( L, [array[i] UTF8String] );
 		
 		// Assign this string to the table 2nd from the top of the stack.
 		// Lua arrays are 1-based so add 1 to index correctly.
-		lua_rawseti(L, -2, i + 1);
+		lua_rawseti( L, -2, i + 1 );
 	}
 	
 	// Result is on top of the lua stack.
+	return 1;
 }
 
 // This was brought up from the Facebook SDK (where it was private)
@@ -517,7 +518,7 @@ IOSFBConnect::IsShareAction( NSString *action )
 }
 	
 // Grabs the current access token from Facebook and converts it to a Lua table
-void
+int
 IOSFBConnect::GetCurrentAccessToken( lua_State *L ) const
 {
 	FBSDKAccessToken *accessToken = [FBSDKAccessToken currentAccessToken];
@@ -548,19 +549,21 @@ IOSFBConnect::GetCurrentAccessToken( lua_State *L ) const
 		
 		// Granted permissions
 		NSArray *grantedPermissions = accessToken.permissions.allObjects;
-		CreateLuaTableFromStringArray( L, grantedPermissions );
-		
-		// Assign the granted permissions table to the access token table,
-		// which is now 2nd from the top of the stack.
-		lua_setfield( L, -2, "grantedPermissions" );
+		if ( CreateLuaTableFromStringArray( L, grantedPermissions ) )
+		{
+			// Assign the granted permissions table to the access token table,
+			// which is now 2nd from the top of the stack.
+			lua_setfield( L, -2, "grantedPermissions" );
+		}
 		
 		// Declined permissions
 		NSArray *declinedPermissions = accessToken.declinedPermissions.allObjects;
-		CreateLuaTableFromStringArray( L, declinedPermissions );
-		
-		// Assign the declined permissions table to the access token table,
-		// which is now 2nd from the top of the stack.
-		lua_setfield( L, -2, "declinedPermissions" );
+		if ( CreateLuaTableFromStringArray( L, declinedPermissions ) )
+		{
+			// Assign the declined permissions table to the access token table,
+			// which is now 2nd from the top of the stack.
+			lua_setfield( L, -2, "declinedPermissions" );
+		}
 		
 		// Now our table of access token data is at the top of the stack
 	}
@@ -569,7 +572,7 @@ IOSFBConnect::GetCurrentAccessToken( lua_State *L ) const
 		// Return nil
 		lua_pushnil( L );
 	}
-	
+	return 1;
 }
 
 bool
@@ -1343,8 +1346,7 @@ IOSFBConnect::ShowDialog( lua_State *L, int index ) const
 						imageURL = [NSURL URLWithString:[dict objectForKey:@"picture"]];
 					}
 					
-					// TODO: Where does this get released
-					FBSDKShareLinkContent *content = [[FBSDKShareLinkContent alloc] init];
+					FBSDKShareLinkContent *content = [[[FBSDKShareLinkContent alloc] init] autorelease];
 					content.contentDescription = contentDescription;
 					content.contentTitle = contentTitle;
 					content.contentURL = contentUrl;
@@ -1356,8 +1358,7 @@ IOSFBConnect::ShowDialog( lua_State *L, int index ) const
 					if ( [action isEqualToString:@"feed"] )
 					{
 						// Present the traditional feed dialog
-						// TODO: Where does this get released?
-						FBSDKShareDialog *dialog = [[FBSDKShareDialog alloc] init];
+						FBSDKShareDialog *dialog = [[[FBSDKShareDialog alloc] init] autorelease];
 						dialog.fromViewController = fRuntime.appViewController;
 						// NOTE: This is currently undocumented in Facebook SDK v4.4.0 docs.
 						// Find it in FBSDKShareDialog.m: Properties
@@ -1402,8 +1403,7 @@ IOSFBConnect::ShowDialog( lua_State *L, int index ) const
 				
 				// Create a game request dialog
 				// ONLY WORKS IF YOUR APP IS CATEGORIZED AS A GAME IN FACEBOOK DEV PORTAL
-				// TODO: Where does this get released
-				FBSDKGameRequestContent *content = [[FBSDKGameRequestContent alloc] init];
+				FBSDKGameRequestContent *content = [[[FBSDKGameRequestContent alloc] init] autorelease];
 				content.message = message;
 				content.recipients = to;
 				content.data = data;

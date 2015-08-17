@@ -44,7 +44,7 @@ class FBConnect
 		CoronaLuaRef GetListener() const { return fListener; }
 
 	public:
-		virtual void GetCurrentAccessToken( lua_State *L ) const = 0;
+		virtual int GetCurrentAccessToken( lua_State *L ) const = 0;
 		virtual void Login( const char *permissions[], int numPermissions, bool attemptNativeLogin) const = 0;
 		virtual bool IsAccessDenied() const = 0;
 		virtual void Logout() const = 0;

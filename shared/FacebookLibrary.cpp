@@ -182,8 +182,7 @@ FacebookLibrary::getCurrentAccessToken( lua_State *L )
 	// Let Objective-C handle the heavy lifting, and return the table made there.
 	Self *library = ToLibrary( L );
 	FBConnect *connect = library->GetFBConnect();
-	connect->GetCurrentAccessToken( L );
-	return 1;
+	return connect->GetCurrentAccessToken( L );
 }
 
 // [Lua] facebook.login( [listener,] [permissions] )
