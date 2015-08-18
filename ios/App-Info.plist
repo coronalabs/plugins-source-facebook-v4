@@ -42,6 +42,8 @@
 	</array>
 	<key>UIStatusBarStyle</key>
 	<string>UIStatusBarStyleBlackTranslucent</string>
+	<key>UIApplicationExitsOnSuspend</key>
+	<false/>
 	<key>FacebookAppID</key>
 	<string>1435768153407403</string>
 	<key>FacebookDisplayName</key>
@@ -74,12 +76,12 @@
 				<false/>
 			</dict>
 			<key>akamaihd.net</key>
-        	<dict>
-            	<key>NSIncludesSubdomains</key>
-            	<true/>
-            	<key>NSExceptionRequiresForwardSecrecy</key>
-            	<false/>
-        	</dict>
+			<dict>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+				<key>NSExceptionRequiresForwardSecrecy</key>
+				<false/>
+			</dict>
 		</dict>
 	</dict>
 	<key>LSApplicationQueriesSchemes</key>
