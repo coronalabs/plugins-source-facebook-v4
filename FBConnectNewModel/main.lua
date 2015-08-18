@@ -63,7 +63,7 @@ display.setStatusBar( display.HiddenStatusBar )
 local fbCommand			-- forward reference
 local LOGOUT = 1
 local SHOW_FEED_DIALOG = 2
-local SHOW_FEED_W_PHOTO_DIALOG = 3
+local SHARE_LINK_DIALOG = 3
 local SHOW_REQUEST_DIALOG = 4
 local POST_MSG = 5
 local POST_PHOTO = 6
@@ -78,6 +78,17 @@ local ButtonYOffset = 35
 local StatusMessageY = 420		-- position of status message
 
 local background = display.newImage( "facebook_bkg.png", centerX, centerY, true ) -- flag overrides large image downscaling
+
+-- Check for an item inside the provided table
+-- Based on implementation at: https://www.omnimaga.org/other-computer-languages-help/(lua)-check-if-array-contains-given-value/
+local function inTable( table, item )
+	for k,v in pairs( table ) do
+		if v == item then
+			return true
+		end
+	end
+	return false
+end
 
 -- This function is useful for debugging problems with using FB Connect's web api,
 -- e.g. you passed bad parameters to the web api and get a response table back
@@ -136,9 +147,9 @@ local function processFBCommand( )
 	end
 
 	-- This displays a Facebook Dialog for posting a link with a photo to your Facebook Wall
-	if fbCommand == SHOW_FEED_W_PHOTO_DIALOG then
+	if fbCommand == SHARE_LINK_DIALOG then
 		-- "feed" is the standard "post status message" dialog
-		local response = facebook.showDialog( "feed", {
+		local response = facebook.showDialog( "link", {
 			name = "Composer GUI",
 			link = "http://www.coronalabs.com/links/forum",
 			description = "Corona SDK for developing iOS and Android apps with the same code base.",
@@ -283,14 +294,29 @@ local function listener( event )
     end
 end
 
+-- local function loginAsync( event )
+-- 	facebook.login( listener )
+-- end
+
+-- local function systemAccountAccessListener( event )
+-- 	print( event.response )
+-- 	timer.performWithDelay(100, loginAsync)
+-- end
+
 local function enforceFacebookLogin( )
 	if facebook.isActive then
 		local accessToken = facebook.getCurrentAccessToken()
 		if accessToken == nil then
 			print( "Need to log in" )
-			facebook.login( {"publish_actions"} )
+			facebook.login( listener )
+			-- For testing native login support on iOS
+			--facebook.login( listener, true )
+		elseif not inTable( accessToken.grantedPermissions, "publish_actions" ) then
+			print( "Logged in, but need permissions" )
+			printTable( accessToken, "Access Token Data" )
+			facebook.login( listener, {"publish_actions"} )
 		else
-			print( "Already logged in" )
+			print( "Already logged in with needed permissions" )
 			printTable( accessToken, "Access Token Data" )
 			statusMessage.textObject.text = "login"
 			processFBCommand()
@@ -304,8 +330,8 @@ end
 -- and create a new Facebook application. That will give you the "API key" and "application secret".
 ---------------------------------------------------------------------------------------------------
 
-print ( "Set our facebook connect event listener" )
-facebook.setFBConnectListener( listener )
+--print ( "Set our facebook connect event listener" )
+--facebook.setFBConnectListener( listener )
 enforceFacebookLogin()
 
 -- ***
@@ -344,10 +370,10 @@ local function showFeedDialog_onRelease( event )
 end
 
 -- This displays a Facebook Dialog for posting a link with a photo to your Facebook Wall
-local function showFeedWPhotoDialog_onRelease( event )
+local function shareLinkDialog_onRelease( event )
 	-- call the login method of the FB session object, passing in a handler
 	-- to be called upon successful login.
-	fbCommand = SHOW_FEED_W_PHOTO_DIALOG
+	fbCommand = SHARE_LINK_DIALOG
 	enforceFacebookLogin()
 end
 
@@ -425,8 +451,8 @@ local showFeedDialogButton = widget.newButton
 showFeedDialogButton.x = ButtonOrigX
 showFeedDialogButton.y = ButtonOrigY + ButtonYOffset * 2
 
--- "Show Feed with Photo with Facebook" button
-local showFeedWPhotoDialogButton = widget.newButton
+-- "Share Link with Facebook" button
+local shareLinkDialogButton = widget.newButton
 {
 	defaultFile = "fbButton184.png",
 	overFile = "fbButtonOver184.png",
@@ -436,10 +462,10 @@ local showFeedWPhotoDialogButton = widget.newButton
 		default = { 255, 255, 255 }, 
 	},
 	fontSize = 12,
-	onRelease = showFeedWPhotoDialog_onRelease,
+	onRelease = shareLinkDialog_onRelease,
 }
-showFeedWPhotoDialogButton.x = ButtonOrigX
-showFeedWPhotoDialogButton.y = ButtonOrigY + ButtonYOffset * 3
+shareLinkDialogButton.x = ButtonOrigX
+shareLinkDialogButton.y = ButtonOrigY + ButtonYOffset * 3
 
 -- "Show Request Dialog with Facebook" button
 local showRequestDialogButton = widget.newButton

@@ -18,7 +18,7 @@ settings =
         {
             publisherId = "com.coronalabs",
             supportedPlatforms = {
-                iphone = true,
+                iphone = { url="http://ajaymccaleb.com/CoronaPlugins/facebookv4ios.tgz" },
                 android = { url="http://ajaymccaleb.com/CoronaPlugins/facebookv4android.tgz" },
                 ["mac-sim"] = false,
                 ["win-sim"] = false,
@@ -41,10 +41,10 @@ settings =
 
 	android =
 	{
-		usesPermissions =
-		{
-			"android.permission.INTERNET",
-		},
+		-- usesPermissions =
+		-- {
+		-- 	"android.permission.INTERNET",
+		-- },
 		-- TODO: Make facebook App Id independent of platform since iOS and Android need it now.
 		facebookAppId = "1435768153407403",	-- replace XXXXXXXXX with your facebook appId
 	},
@@ -53,6 +53,39 @@ settings =
 	{
 		plist =
 		{
+			-- For iOS 9 only
+			NSAppTransportSecurity = 
+			{
+				NSExceptionDomains = 
+				{
+					["fbcdn.net"] = 
+					{
+						NSIncludesSubdomains = true,
+						NSExceptionRequiresForwardSecrecy = false,
+					},
+					["facebook.com"] = 
+					{
+						NSIncludesSubdomains = true,
+						NSExceptionRequiresForwardSecrecy = false,
+					},
+				},
+			},
+
+			LSApplicationQueriesSchemes = 
+			{
+				"fb",
+				"fbapi20130214",
+    			"fbapi20130410",
+    			"fbapi20140410",
+    			"fbapi20140116",
+    			"fbapi20150313",
+    			"fbapi20150629",
+    			"fbauth",
+    			"fbauth2",
+    			"fb-messenger-api20140430",
+			},
+
+			-- For all version of iOS.
 			CFBundleIconFiles =
 			{
 				"Icon.png", 
@@ -74,7 +107,7 @@ settings =
 			},
 			UIApplicationExitsOnSuspend = false,	-- must be false for single sign-on to work
 			FacebookAppID = "1435768153407403",	-- replace XXXXXXXXX with your facebook appId
-
+			
 			CFBundleURLTypes =
 			{
 				{
@@ -83,7 +116,7 @@ settings =
 						"fb1435768153407403",	-- replace XXXXXXXXX with your facebook appId	
 					}
 				}
-			}
+			},
 		}
 	},
 }
