@@ -373,23 +373,23 @@ public class FacebookController {
 
     // Creates a Lua table out of an array of strings.
     // Leaves the Lua table on top of the stack.
-    private static void createLuaTableFromStringArray(String[] array) {
+    private static int createLuaTableFromStringArray(String[] array) {
         // Grab the method name for error messages:
         String methodName = "FacebookController.createLuaTableFromStringArray()";
 
         if (array == null) {
             Log.v("Corona", "ERROR: " + methodName + ": cannot create a lua table from a null " +
                     "array! Please pass in a non-null string array.");
-            return;
+            return 0;
         }
 
         LuaState L = fetchLuaState();
         if (L == null) {
             Log.v("Corona", "ERROR: " + methodName + NO_LUA_STATE_ERR_MSG);
-            return;
+            return 0;
         }
 
-        L.newTable(0, 0);
+        L.newTable(array.length, 0);
         for (int i = 0; i < array.length; i++) {
             // Push this string to the top of the stack
             L.pushString(array[i]);
@@ -400,6 +400,7 @@ public class FacebookController {
         }
 
         // Result is on top of the lua stack.
+        return 1;
     }
 
     protected static Bundle createFacebookBundle( Hashtable map ) {
@@ -549,7 +550,7 @@ public class FacebookController {
         //Log.d("Corona", "<--Leaving facebook login");
     }
 
-    private static void requestPermissions(final String permissions[]) {
+    private static void requestPermissions(String permissions[]) {
         // Grab the method name for error messages:
         String methodName = "FacebookController.requestPermissions()";
 
@@ -593,6 +594,21 @@ public class FacebookController {
             }
         }
 
+        // If someone is trying to request additional permissions before
+        // doing an initial login, tack on the required read permissions.
+        String[] requiredPermissions = {"public_profile", "user_friends"};
+        for (int i = 0; i < requiredPermissions.length; i++) {
+
+            // If they haven't requested one of the required permissions and
+            // they either aren't logged in, or don't already have this required permission.
+            if (!readPermissions.contains(requiredPermissions[i]) &&
+                    (currentAccessToken == null ||
+                    !currentAccessToken.getPermissions().contains(requiredPermissions[i]))) {
+                //Log.d("Corona", "Adding required permission: " + requiredPermissions[i]);
+                readPermissions.add(requiredPermissions[i]);
+            }
+        }
+
         CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
         if (activity == null) {
             Log.v("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
@@ -623,6 +639,14 @@ public class FacebookController {
                     currentAccessToken.getToken(),
                     toSecondsFromMilliseconds(currentAccessToken.getExpires().getTime()));
         }
+    }
+
+    private static boolean isShareAction(String action) {
+        return  action.equals("feed") ||
+                action.equals("link") ||
+                action.equals("photo") ||
+                action.equals("video") ||
+                action.equals("openGraph");
     }
     /**********************************************************************************************/
     /********************************** API Implementations ***************************************/
@@ -788,14 +812,14 @@ public class FacebookController {
     /**
      * facebook.getCurrentAccessToken entry point
      */
-    public static void facebookGetCurrentAccessToken() {
+    public static int facebookGetCurrentAccessToken() {
         // Grab the method name for error messages:
         String methodName = "FacebookController.facebookGetCurrentAccessToken()";
 
         LuaState L = fetchLuaState();
         if (L == null) {
             Log.v("Corona", "ERROR: " + methodName + NO_LUA_STATE_ERR_MSG);
-            return;
+            return 0;
         }
 
         AccessToken currentAccessToken = AccessToken.getCurrentAccessToken();
@@ -825,35 +849,39 @@ public class FacebookController {
 
             // Granted permissions
             Object[] grantedPermissions = currentAccessToken.getPermissions().toArray();
-            createLuaTableFromStringArray(Arrays.copyOf(
-                    grantedPermissions, grantedPermissions.length, String[].class));
+            if (createLuaTableFromStringArray(Arrays.copyOf(
+                    grantedPermissions, grantedPermissions.length, String[].class)) > 0) {
 
-            // Assign the granted permissions table to the access token table,
-            // which is now 2nd from the top of the stack.
-            L.setField(-2, "grantedPermissions");
+                // Assign the granted permissions table to the access token table,
+                // which is now 2nd from the top of the stack.
+                L.setField(-2, "grantedPermissions");
+            }
 
             // Declined permissions
             Object[] declinedPermissions =
                     currentAccessToken.getDeclinedPermissions().toArray();
-            createLuaTableFromStringArray(Arrays.copyOf(
-                    declinedPermissions, declinedPermissions.length, String[].class));
+            if (createLuaTableFromStringArray(Arrays.copyOf(
+                    declinedPermissions, declinedPermissions.length, String[].class)) > 0) {
 
-            // Assign the declined permissions table to the access token table,
-            // which is now 2nd from the top of the stack.
-            L.setField(-2, "declinedPermissions");
+                // Assign the declined permissions table to the access token table,
+                // which is now 2nd from the top of the stack.
+                L.setField(-2, "declinedPermissions");
+            }
 
             // Now our table of access token data is at the top of the stack
         } else {
             // Return nil
             L.pushNil();
         }
+
+        return 1;
     }
 
     /**
      * facebook.login() entry point
      * @param permissions: An array of permissions to be requested if needed.
      */
-    public static void facebookLogin(final String permissions[]) {
+    public static void facebookLogin(String permissions[]) {
         // Grab the method name for error messages:
         String methodName = "FacebookController.facebookLogin()";
         //Log.d("Corona", "-->In facebook login");
@@ -927,39 +955,49 @@ public class FacebookController {
         // Grab the method name for error messages:
         String methodName = "FacebookController.facebookRequest()";
 
-        // Verify params and environment
-        CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
-        if (activity == null) {
-            Log.v("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
-            return;
-        }
+        AccessToken currentAccessToken = AccessToken.getCurrentAccessToken();
 
-        // Figure out what type of request to make
-        //Log.d("Corona", "Result of HttpMethod.valueOf(method): " + HttpMethod.valueOf(method));
-        HttpMethod httpMethod = HttpMethod.valueOf(method);
-        if (httpMethod != HttpMethod.GET && httpMethod != HttpMethod.POST) {
-            Log.v("Corona", "ERROR: " + methodName + ": only supports " +
-                    "HttpMethods GET and POST! Cancelling request.");
-            return;
-        }
+        if (currentAccessToken != null) {
 
-        // Use the most universal method for requests vs Facebook's very-specific request APIs
-        GraphRequest myRequest = new GraphRequest(
-                AccessToken.getCurrentAccessToken(),
-                path,
-                createFacebookBundle(params),
-                HttpMethod.valueOf(method),
-                new FacebookRequestCallbackListener());
-
-        final GraphRequest finalRequest = myRequest;
-
-        // The facebook documentation says this should only be run on the UI thread
-        activity.runOnUiThread( new Runnable() {
-            @Override
-            public void run() {
-                finalRequest.executeAsync();
+            // Verify params and environment
+            CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
+            if (activity == null) {
+                Log.v("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
+                return;
             }
-        });
+
+            // Figure out what type of request to make
+            HttpMethod httpMethod = HttpMethod.valueOf(method);
+            if (httpMethod != HttpMethod.GET && httpMethod != HttpMethod.POST) {
+                Log.v("Corona", "ERROR: " + methodName + ": only supports " +
+                        "HttpMethods GET and POST! Cancelling request.");
+                return;
+            }
+
+            // Use the most universal method for requests vs Facebook's very-specific request APIs
+            GraphRequest myRequest = new GraphRequest(
+                    currentAccessToken,
+                    path,
+                    createFacebookBundle(params),
+                    HttpMethod.valueOf(method),
+                    new FacebookRequestCallbackListener());
+
+            final GraphRequest finalRequest = myRequest;
+
+            // The facebook documentation says this should only be run on the UI thread
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    finalRequest.executeAsync();
+                }
+            });
+        } else {
+            // Can't perform a Graph Request without being logged in.
+            // TODO: Log the user in, and then retry the same Graph API request.
+            Log.v("Corona", "ERROR: " + methodName + ": cannot process a Graph API request " +
+                    "without being logged in. Please call facebook.login() before calling " +
+                    "facebook.request()." );
+        }
     }
 
     private static class FacebookRequestCallbackListener implements GraphRequest.Callback {
@@ -1016,14 +1054,12 @@ public class FacebookController {
      * @param params: Table of arguments to the desired dialog
      *
      * TODO: Finish new options for showDialog so that "link" actually makes sense here
-     * TODO: Refactor the parts of the base ShareContent class out so it's not repeated
      * TODO: For sharing photos from deviceSupport loading bitmaps from app - Added in SDK 4+
      * TODO: For sharing photos from deviceCheck if image is 200x200
      * TODO: For sharing photos from device, have it work without FB app,
      *       SharePhoto only works with Facebook app according to:
      *       http://stackoverflow.com/questions/30843786/sharing-photo-using-facebook-sdk-4-2-0
      * TODO: Support batches of photos of each type
-     * TODO: consistent error handling like other APIs
      */
     public static void facebookDialog( final String action, final Hashtable params ) {
 
@@ -1054,59 +1090,61 @@ public class FacebookController {
             @Override
             public void run() {
 
-                // Grab the base share parameters -- those defined in ShareContent.java
-                String contentUrl = params != null ? (String) params.get("link") : null;
-                LinkedList<String> peopleIds = null;
-                Hashtable peopleIdsTable =
-                        params != null ? (Hashtable) params.get("peopleIds") : null;
-                if (peopleIdsTable != null) {
-                    peopleIds = new LinkedList(peopleIdsTable.values());
-                }
-                String placeId = params != null ? (String) params.get("placeId") : null;
-                String ref = params != null ? (String) params.get("ref") : null;
-
-                // The link action also supports most of what the feed action used to support
-                // "feed" will present the feed dialog as it was in the old Facebook plugin
-                // "link" uses Facebook's default settings which depends on the presence
-                // of the Facebook app on the device.
-                if (action.equals("link") || action.equals("feed")) {
-
-                    // Validate data
-                    // Get the Uris that we can parse
-                    Uri linkUri = null;
-                    if (contentUrl != null) {
-                        linkUri = Uri.parse(contentUrl);
+                if (isShareAction(action)) {
+                    // Grab the base share parameters -- those defined in ShareContent.java
+                    String contentUrl = params != null ? (String) params.get("link") : null;
+                    LinkedList<String> peopleIds = null;
+                    Hashtable peopleIdsTable =
+                            params != null ? (Hashtable) params.get("peopleIds") : null;
+                    if (peopleIdsTable != null) {
+                        peopleIds = new LinkedList(peopleIdsTable.values());
                     }
+                    String placeId = params != null ? (String) params.get("placeId") : null;
+                    String ref = params != null ? (String) params.get("ref") : null;
 
-                    String photoUrl = params != null ? (String) params.get("picture") : null;
-                    Uri photoUri = null;
-                    if (photoUrl != null) {
-                        photoUri = Uri.parse(photoUrl);
-                    }
+                    // The link action also supports most of what the feed action used to support
+                    // "feed" will present the feed dialog as it was in the old Facebook plugin
+                    // "link" uses Facebook's default settings which depends on the presence
+                    // of the Facebook app on the device.
+                    if (action.equals("link") || action.equals("feed")) {
 
-                    // Grab remaining link data
-                    String description = params != null ? (String) params.get("description") : null;
-                    String name = params != null ? (String) params.get("name") : null;
+                        // Validate data
+                        // Get the Uris that we can parse
+                        Uri linkUri = null;
+                        if (contentUrl != null) {
+                            linkUri = Uri.parse(contentUrl);
+                        }
 
-                    // Set up the dialog to share this link
-                    ShareLinkContent linkContent = new ShareLinkContent.Builder()
-                            .setContentDescription(description)
-                            .setContentTitle(name)
-                            .setImageUrl(photoUri)
-                            .setContentUrl(linkUri)
-                            .setPeopleIds(peopleIds)
-                            .setPlaceId(placeId)
-                            .setRef(ref)
-                            .build();
-                    if (action.equals("feed")) {
-                        // Present the dialog through the old Feed dialog.
-                        sShareDialog.show(linkContent, ShareDialog.Mode.FEED);
-                    } else {
-                        // Presenting the share dialog behaves differently depending on whether the
-                        // user has the Facebook app installed on their device or not. With the
-                        // Facebook app, things like tagging friends and a location are built-in.
-                        // Otherwise, these things aren't built-in.
-                        sShareDialog.show(linkContent);
+                        String photoUrl = params != null ? (String) params.get("picture") : null;
+                        Uri photoUri = null;
+                        if (photoUrl != null) {
+                            photoUri = Uri.parse(photoUrl);
+                        }
+
+                        // Grab remaining link data
+                        String description = params != null ? (String) params.get("description") : null;
+                        String name = params != null ? (String) params.get("name") : null;
+
+                        // Set up the dialog to share this link
+                        ShareLinkContent linkContent = new ShareLinkContent.Builder()
+                                .setContentDescription(description)
+                                .setContentTitle(name)
+                                .setImageUrl(photoUri)
+                                .setContentUrl(linkUri)
+                                .setPeopleIds(peopleIds)
+                                .setPlaceId(placeId)
+                                .setRef(ref)
+                                .build();
+                        if (action.equals("feed")) {
+                            // Present the dialog through the old Feed dialog.
+                            sShareDialog.show(linkContent, ShareDialog.Mode.FEED);
+                        } else {
+                            // Presenting the share dialog behaves differently depending on whether the
+                            // user has the Facebook app installed on their device or not. With the
+                            // Facebook app, things like tagging friends and a location are built-in.
+                            // Otherwise, these things aren't built-in.
+                            sShareDialog.show(linkContent);
+                        }
                     }
                 } else if (action.equals("requests") || action.equals("apprequests")) {
 
@@ -1116,8 +1154,8 @@ public class FacebookController {
                     String data = params != null ? (String) params.get("data") : null;
                     String title = params != null ? (String) params.get("title") : null;
                     ActionType actiontype =
-                            params != null ? (ActionType) params.get("actiontype") : null;
-                    String objectid = params != null ? (String) params.get("objectid") : null;
+                            params != null ? (ActionType) params.get("actionType") : null;
+                    String objectid = params != null ? (String) params.get("objectId") : null;
                     Filters filters = params != null ? (Filters) params.get("filters") : null;
                     ArrayList<String> suggestions =
                             params != null ? (ArrayList<String>) params.get("suggestions") : null;

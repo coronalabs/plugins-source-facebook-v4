@@ -81,10 +81,8 @@ public class LuaLoader implements JavaFunction {
 		@Override
 		public int invoke(LuaState L) {
 
-			FacebookController.facebookGetCurrentAccessToken();
-
 			// Return the Lua table now atop the stack.
-			return 1;
+			return FacebookController.facebookGetCurrentAccessToken();
 		}
 	}
 
@@ -227,19 +225,24 @@ public class LuaLoader implements JavaFunction {
 
 		@Override
 		public int invoke(LuaState L) {
-
-			int index = 1;
-
-			String action = L.toString(index);
-			index++;
-
+			String methodName = "facebook." + getName() + "()";
+			String action = null;
 			Hashtable params = null;
-			if (L.type(index) == LuaType.TABLE) {
-				params = CoronaLua.toHashtable(L, index);
-			}
-			index++;
 
-			FacebookController.facebookDialog(action, params);
+			if (L.isString(1)) {
+
+				action = L.toString(1);
+
+				if (L.type(2) == LuaType.TABLE) {
+					params = CoronaLua.toHashtable(L, 2);
+				}
+
+				FacebookController.facebookDialog(action, params);
+
+			} else {
+				Log.v("Corona", "ERROR: " + methodName + ": Invalid parameters passed to " +
+						"facebook.showDialog( action [, params] ).");
+			}
 
 			return 0;
 		}
