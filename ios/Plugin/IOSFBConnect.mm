@@ -1380,14 +1380,14 @@ IOSFBConnect::ShowDialog( lua_State *L, int index ) const
 			else if ( [action isEqualToString:@"requests"] || [action isEqualToString:@"apprequests"] )
 			{
 				// Grab game request-specific data
-				NSString * message = nil;
-				NSArray * to = nil; // Is mapped to "recipients" as Facebook deprecated "to"
-				NSString * data = nil;
-				NSString* title = nil;
+				NSString *message = nil;
+				NSString *to = nil; // Is mapped to "recipients" as Facebook deprecated "to" on iOS.
+				NSString *data = nil;
+				NSString *title = nil;
 				FBSDKGameRequestActionType actionType = nil;
-				NSString* objectId = nil;
+				NSString *objectId = nil;
 				FBSDKGameRequestFilter filters = nil;
-				NSArray *suggestions = nil; // Is mapped to "recipientSuggestions" as Facebook deprecated "suggestions"
+				NSArray *suggestions = nil; // Is mapped to "recipientSuggestions" as Facebook deprecated "suggestions" on iOS.
 				
 				if ( dict )
 				{
@@ -1405,13 +1405,16 @@ IOSFBConnect::ShowDialog( lua_State *L, int index ) const
 				// ONLY WORKS IF YOUR APP IS CATEGORIZED AS A GAME IN FACEBOOK DEV PORTAL
 				FBSDKGameRequestContent *content = [[[FBSDKGameRequestContent alloc] init] autorelease];
 				content.message = message;
-				content.recipients = to;
 				content.data = data;
 				content.title = title;
 				content.actionType = actionType;
 				content.objectID = objectId;
 				content.filters = filters;
 				content.recipientSuggestions = suggestions;
+				
+				// Since Android can only pre-load one person at a time, we need to match
+				// this on iOS, despite having the ability to pre-load multiple people.
+				content.recipients = [NSArray arrayWithObject:to];
 				
 				[FBSDKGameRequestDialog showWithContent:content delegate:fGameRequestDialogDelegate];
 			}
