@@ -962,7 +962,7 @@ public class FacebookController {
     /**
      * facebook.request() entry point
      * @param path: Graph API path
-     * @param method: HTTP method to use for the request, "GET" or "POST"
+     * @param method: HTTP method to use for the request, "GET", "POST", or "DELETE"
      * @param params: Arguments for Graph API request
      */
     public static void facebookRequest( String path, String method, Hashtable params ) {
@@ -982,9 +982,11 @@ public class FacebookController {
 
             // Figure out what type of request to make
             HttpMethod httpMethod = HttpMethod.valueOf(method);
-            if (httpMethod != HttpMethod.GET && httpMethod != HttpMethod.POST) {
+            if (httpMethod != HttpMethod.GET
+                    && httpMethod != HttpMethod.POST
+                    && httpMethod != HttpMethod.DELETE) {
                 Log.v("Corona", "ERROR: " + methodName + ": only supports " +
-                        "HttpMethods GET and POST! Cancelling request.");
+                        "HttpMethods GET, POST, and DELETE! Cancelling request.");
                 return;
             }
 

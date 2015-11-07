@@ -823,9 +823,9 @@ IOSFBConnect::Request( lua_State *L, const char *path, const char *httpMethod, i
 		NSString *httpMethodString = [NSString stringWithUTF8String:httpMethod];
 		
 		// Validate HTTP Method
-		if (! [httpMethodString isEqualToString:@"GET"] && ! [httpMethodString isEqualToString:@"POST"])
+		if (! [httpMethodString isEqualToString:@"GET"] && ! [httpMethodString isEqualToString:@"POST"] && ! [httpMethodString isEqualToString:@"DELETE"])
 		{
-			CORONA_LOG_ERROR( "%s%s", functionName, ": only supports HttpMethods GET and POST! Cancelling request." );
+			CORONA_LOG_ERROR( "%s%s", functionName, ": only supports HttpMethods GET, POST, and DELETE! Cancelling request." );
 			return;
 		}
 
