@@ -272,6 +272,24 @@ FBConnect::Delete( FBConnect *instance )
 
 const char IOSFBConnect::kLostAccessTokenError[] = ": lost the access token. This could be the result of another thread completing facebook.logout() before this callback was invoked.";
 	
+// Set up Enum - NSString conversion dictionaries.
+// From: http://stackoverflow.com/questions/13171907/best-way-to-enum-nsstring
+NSDictionary* IOSFBConnect::FBSDKGameRequestActionTypeDictionary =
+  @{
+	@"none" : @(FBSDKGameRequestActionTypeNone),
+	@"send" : @(FBSDKGameRequestActionTypeSend),
+	@"askfor": @(FBSDKGameRequestActionTypeAskFor),
+	@"turn": @(FBSDKGameRequestActionTypeTurn)
+   };
+	
+NSDictionary* IOSFBConnect::FBSDKGameRequestFilterDictionary =
+  @{
+	@"none" : @(FBSDKGameRequestFilterNone),
+	@"app_users" : @(FBSDKGameRequestFilterAppUsers),
+	@"app_non_users": @(FBSDKGameRequestFilterAppNonUsers)
+   };
+	
+	
 IOSFBConnect::IOSFBConnect( id< CoronaRuntime > runtime )
 :	Super(),
 	fRuntime( runtime ),
@@ -515,6 +533,30 @@ IOSFBConnect::IsShareAction( NSString *action )
 			[action isEqualToString:@"photo"] ||
 			[action isEqualToString:@"video"] ||
 			[action isEqualToString:@"openGraph"];
+}
+
+FBSDKGameRequestActionType
+IOSFBConnect::GetActionTypeFrom( NSString* actionTypeString )
+{
+	id actionType = [FBSDKGameRequestActionTypeDictionary objectForKey:[actionTypeString lowercaseString]];
+	if ( actionType )
+	{
+		// Grab the value from the action type object, copy and return it.
+		return (FBSDKGameRequestActionType)[(NSNumber*)actionType intValue];
+	}
+	return FBSDKGameRequestActionTypeNone;
+}
+
+FBSDKGameRequestFilter
+IOSFBConnect::GetFilterFrom( NSString* filterString )
+{
+	id filter = [FBSDKGameRequestFilterDictionary objectForKey:[filterString lowercaseString]];
+	if ( filter )
+	{
+		// Grab the value from the filter object, copy and return it.
+		return (FBSDKGameRequestFilter)[(NSNumber*)filter intValue];
+	}
+	return FBSDKGameRequestFilterNone;
 }
 	
 // Grabs the current access token from Facebook and converts it to a Lua table
@@ -1391,14 +1433,57 @@ IOSFBConnect::ShowDialog( lua_State *L, int index ) const
 				
 				if ( dict )
 				{
+					// Parse simple options
 					message = [dict objectForKey:@"message"];
 					to = [dict objectForKey:@"to"];
 					data = [dict objectForKey:@"data"];
 					title = [dict objectForKey:@"title"];
-					actionType = (FBSDKGameRequestActionType)[dict objectForKey:@"actionType"];
 					objectId = [dict objectForKey:@"objectId"];
-					filters = (FBSDKGameRequestFilter)[dict objectForKey:@"filters"];
-					suggestions = [dict objectForKey:@"suggestions"];
+					
+					// Parse complex options
+					// ActionType
+					id actionTypeFromLuaTable = [dict objectForKey:@"actionType"];
+					if ( [actionTypeFromLuaTable isKindOfClass:[NSString class]] )
+					{
+						actionType = GetActionTypeFrom(actionTypeFromLuaTable);
+					}
+					else if ( actionTypeFromLuaTable )
+					{
+						CORONA_LOG_ERROR( "%s%s", invalidParametersErrorMessage, " options.actionType must be a string!" );
+						return;
+					}
+					
+					// Filters
+					id filterFromLuaTable = [dict objectForKey:@"filter"];
+					if ( [filterFromLuaTable isKindOfClass:[NSString class]] )
+					{
+						filters = GetFilterFrom(filterFromLuaTable);
+					}
+					else if ( filterFromLuaTable )
+					{
+						CORONA_LOG_ERROR( "%s%s", invalidParametersErrorMessage, " options.filter must be a string!" );
+						return;
+					}
+					
+					// Suggestions
+					suggestions = [[dict objectForKey:@"suggestions"] allValues];
+					if ( suggestions )
+					{
+						// Purge for malformed data in the "suggestions" table. Throw an error to the developer if we find any.
+						// Based on: http://stackoverflow.com/questions/6091414/finding-out-whether-a-string-is-numeric-or-not
+						NSCharacterSet* notDigits = [[NSCharacterSet decimalDigitCharacterSet] invertedSet];
+						for ( int i = 0; i < [suggestions count]; i++ )
+						{
+							// If this object isn't a string containing only numbers, then it's malformed data!
+							id suggestion = [suggestions objectAtIndex:i];
+							if ( ![suggestion isKindOfClass:[NSString class]]
+								|| [(NSString*)suggestion rangeOfCharacterFromSet:notDigits].location != NSNotFound)
+							{
+								CORONA_LOG_ERROR( "%s%s", invalidParametersErrorMessage, " options.suggestions must contain Facebook User IDs as strings!" );
+								return;
+							}
+						}
+					}
 				}
 				
 				// Create a game request dialog
@@ -1414,7 +1499,9 @@ IOSFBConnect::ShowDialog( lua_State *L, int index ) const
 				
 				// Since Android can only pre-load one person at a time, we need to match
 				// this on iOS, despite having the ability to pre-load multiple people.
-				content.recipients = [NSArray arrayWithObject:to];
+				// We nil check the "to" parameters since Objective-C won't allow nils in
+				// arrays, and is silent about it if you try.
+				content.recipients = to ? [NSArray arrayWithObject:to] : nil;
 				
 				[FBSDKGameRequestDialog showWithContent:content delegate:fGameRequestDialogDelegate];
 			}

@@ -79,6 +79,7 @@ import java.lang.Override;
 import java.lang.String;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -100,6 +101,7 @@ import com.naef.jnlua.LuaType;
 import org.json.JSONObject;
 
 public class FacebookController {
+
     /************************************** Member Variables **************************************/
     private static int sListener;
     private static int sLibRef;
@@ -120,6 +122,8 @@ public class FacebookController {
             "User action or another thread may have destroyed it.";
     public static final String NO_LUA_STATE_ERR_MSG = ": the Lua state has died! Abort!";
     public static final String DIALOG_CANCELLED_MSG = "Dialog was cancelled by user.";
+    public static final String INVALID_PARAMS_SHOW_DIALOG_ERR_MSG = ": Invalid parameters passed " +
+            "to facebook.showDialog( action [, params] ).";
     /**********************************************************************************************/
     /*************************************** Callbacks ********************************************/
     /**
@@ -371,6 +375,18 @@ public class FacebookController {
         return timeInMilliseconds/1000;
     }
 
+    // Compares strings to enum names ignoring case.
+    // Based on: http://stackoverflow.com/questions/28332924/
+    // case-insensitive-matching-of-a-string-to-a-java-enum
+    public static <T extends Enum<T>> T enumValueOfIgnoreCase(Class<T> enumType, String name) {
+        for (T enumToCheck : enumType.getEnumConstants()) {
+            if (enumToCheck.name().equalsIgnoreCase(name)) {
+                return enumToCheck;
+            }
+        }
+        return null;
+    }
+
     // Creates a Lua table out of an array of strings.
     // Leaves the Lua table on top of the stack.
     private static int createLuaTableFromStringArray(String[] array) {
@@ -461,7 +477,6 @@ public class FacebookController {
             //Log.d("Corona", "Enforce Internet permission");
             activity.enforceCallingOrSelfPermission(permission.INTERNET, null);
         } else {
-            //Log.d("Corona", "Error: Don't have an Application Context");
             Log.v("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
             return;
         }
@@ -918,7 +933,6 @@ public class FacebookController {
                 Log.v("Corona", "ERROR: " + methodName + ": Facebook's Callback manager isn't " +
                         "initialized. Be sure to initialize the callback manager before the " +
                         "FacebookActivityResultHandler is called.");
-                return;
             }
         }
     }
@@ -984,6 +998,7 @@ public class FacebookController {
 
             final GraphRequest finalRequest = myRequest;
 
+            //Log.d("Corona", "Invoke facebook.request()");
             // The facebook documentation says this should only be run on the UI thread
             activity.runOnUiThread(new Runnable() {
                 @Override
@@ -1004,6 +1019,7 @@ public class FacebookController {
         @Override
         public void onCompleted(GraphResponse response)
         {
+            //Log.d("Corona", "Got callback from facebook.request()");
             // Grab the method name for error messages:
             String methodName = "FacebookController.FacebookRequestCallbackListener.onCompleted()";
 
@@ -1122,7 +1138,8 @@ public class FacebookController {
                         }
 
                         // Grab remaining link data
-                        String description = params != null ? (String) params.get("description") : null;
+                        String description =
+                                params != null ? (String) params.get("description") : null;
                         String name = params != null ? (String) params.get("name") : null;
 
                         // Set up the dialog to share this link
@@ -1139,26 +1156,76 @@ public class FacebookController {
                             // Present the dialog through the old Feed dialog.
                             sShareDialog.show(linkContent, ShareDialog.Mode.FEED);
                         } else {
-                            // Presenting the share dialog behaves differently depending on whether the
-                            // user has the Facebook app installed on their device or not. With the
-                            // Facebook app, things like tagging friends and a location are built-in.
-                            // Otherwise, these things aren't built-in.
+                            // Presenting the share dialog behaves differently depending on whether
+                            // the user has the Facebook app installed on their device or not. With
+                            // the Facebook app, things like tagging friends and a location are
+                            // built-in. Otherwise, these things aren't built-in.
                             sShareDialog.show(linkContent);
                         }
                     }
                 } else if (action.equals("requests") || action.equals("apprequests")) {
 
                     // Grab game request-specific data
+                    // Parse simple options
                     String message = params != null ? (String) params.get("message") : null;
                     String to = params != null ? (String) params.get("to") : null;
                     String data = params != null ? (String) params.get("data") : null;
                     String title = params != null ? (String) params.get("title") : null;
-                    ActionType actiontype =
-                            params != null ? (ActionType) params.get("actionType") : null;
-                    String objectid = params != null ? (String) params.get("objectId") : null;
-                    Filters filters = params != null ? (Filters) params.get("filters") : null;
-                    ArrayList<String> suggestions =
-                            params != null ? (ArrayList<String>) params.get("suggestions") : null;
+                    String objectId = params != null ? (String) params.get("objectId") : null;
+
+                    // Parse complex options
+                    // ActionType
+                    ActionType actionType = null;
+                    Object actionTypeObject = params != null ? params.get("actionType") : null;
+                    if (actionTypeObject instanceof String) {
+                        actionType = (ActionType) enumValueOfIgnoreCase
+                                (ActionType.class, (String) actionTypeObject);
+                    } else if (actionTypeObject != null) {
+                        Log.v("Corona", "ERROR: " + methodName +
+                                INVALID_PARAMS_SHOW_DIALOG_ERR_MSG +
+                                " options.actionType must be a string!");
+                        return;
+                    }
+
+                    // Filter
+                    // This is an enum that contains filters for which groups of freinds to show on
+                    // the Game Request dialog. Unfortunately, facebook gave this enum the name
+                    // "Filters" on Android, so the code is a little difficult to understand.
+                    Filters filter = null;
+                    Object filterObject = params != null ? params.get("filter") : null;
+                    if (filterObject instanceof String) {
+                        filter = (Filters) enumValueOfIgnoreCase
+                                (Filters.class, (String) filterObject);
+                    } else if (filterObject != null) {
+                        Log.v("Corona", "ERROR: " + methodName +
+                                INVALID_PARAMS_SHOW_DIALOG_ERR_MSG +
+                                " options.filter must be a string!");
+                        return;
+                    }
+
+                    // Suggestions
+                    ArrayList<String> suggestions = null;
+                    Hashtable suggestionsTable =
+                            params != null ? (Hashtable) params.get("suggestions") : null;
+                    if (suggestionsTable != null) {
+                        Collection<Object> suggestionsCollection = suggestionsTable.values();
+
+                        // Purge for malformed data in the "suggestions" table.
+                        // Throw an error to the developer if we find any.
+                        for (Object suggestion : suggestionsCollection) {
+                            if (!(suggestion instanceof String) ||
+                                    !((String)suggestion).matches("[0-9]+")) {
+                                Log.v("Corona", "ERROR: " + methodName +
+                                        INVALID_PARAMS_SHOW_DIALOG_ERR_MSG +
+                                        " options.suggestions must contain Facebook User IDs as " +
+                                        "strings!");
+                                return;
+                            }
+                        }
+
+                        // Convert the data to the right format now that it's been verified.
+                        suggestions = new ArrayList(suggestionsCollection);
+                    }
 
                     // Create a game request dialog
                     // ONLY WORKS IF YOUR APP IS CATEGORIZED AS A GAME IN FACEBOOK DEV PORTAL
@@ -1167,9 +1234,9 @@ public class FacebookController {
                             .setTo(to)
                             .setData(data)
                             .setTitle(title)
-                            .setActionType(actiontype)
-                            .setObjectId(objectid)
-                            .setFilters(filters)
+                            .setActionType(actionType)
+                            .setObjectId(objectId)
+                            .setFilters(filter)
                             .setSuggestions(suggestions)
                             .build();
 

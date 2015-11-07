@@ -240,8 +240,8 @@ public class LuaLoader implements JavaFunction {
 				FacebookController.facebookDialog(action, params);
 
 			} else {
-				Log.v("Corona", "ERROR: " + methodName + ": Invalid parameters passed to " +
-						"facebook.showDialog( action [, params] ).");
+				Log.v("Corona", "ERROR: " + methodName +
+						FacebookController.INVALID_PARAMS_SHOW_DIALOG_ERR_MSG);
 			}
 
 			return 0;

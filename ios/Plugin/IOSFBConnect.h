@@ -19,6 +19,7 @@
 #import <AddressBook/AddressBook.h>
 #import <AddressBookUI/AddressBookUI.h>
 #import <FBSDKLoginKit/FBSDKLoginKit.h>
+#import <FBSDKShareKit/FBSDKShareKit.h>
 
 // ----------------------------------------------------------------------------
 
@@ -77,6 +78,8 @@ class IOSFBConnect : public FBConnect
 		static int CreateLuaTableFromStringArray( lua_State *L, NSArray* array );
 		static bool IsPublishPermission( NSString *permission );
 		static bool IsShareAction( NSString *action );
+		static FBSDKGameRequestActionType GetActionTypeFrom( NSString* actionTypeString );
+		static FBSDKGameRequestFilter GetFilterFrom( NSString* filterString );
 	
 	private:
 		id< CoronaRuntime > fRuntime;
@@ -94,6 +97,10 @@ class IOSFBConnect : public FBConnect
 	
 		// Error messages
 		static const char kLostAccessTokenError[];
+	
+		// Enum to NSString conversion dictionaries
+		static NSDictionary* FBSDKGameRequestActionTypeDictionary;
+		static NSDictionary* FBSDKGameRequestFilterDictionary;
 };
 
 // ----------------------------------------------------------------------------
