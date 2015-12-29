@@ -72,7 +72,7 @@ class IOSFBConnect : public FBConnect
 		void LoginAppropriately( NSArray *readPermissions, NSArray *publishPermissions ) const;
 		void LoginWithOnlyRequiredPermissions() const;
 		void RequestPermissions( NSArray *readPermissions, NSArray *publishPermissions ) const;
-		void HandleRequestPermissionsResponse( NSArray *permissionsToVerify, FBSDKLoginManagerLoginResult *result, NSError *error ) const;
+		void HandleRequestPermissionsResponse( FBSDKLoginManagerLoginResult *result, NSError *error ) const;
 
 	private:
 		static int CreateLuaTableFromStringArray( lua_State *L, NSArray* array );

@@ -482,7 +482,7 @@ IOSFBConnect::IsPublishPermission( NSString *permission )
 }
 	
 void
-IOSFBConnect::HandleRequestPermissionsResponse( NSArray *permissionsToVerify, FBSDKLoginManagerLoginResult *result, NSError *error ) const
+IOSFBConnect::HandleRequestPermissionsResponse( FBSDKLoginManagerLoginResult *result, NSError *error ) const
 {
 	const char functionName[] = "IOSFBConnect::HandleRequestPermissionsResponse()";
 	
@@ -501,27 +501,7 @@ IOSFBConnect::HandleRequestPermissionsResponse( NSArray *permissionsToVerify, FB
 			return;
 		}
 		
-		bool release = false;
-		if ( ! error )
-		{
-			// Verify that all the requested permissions were granted
-			for ( int i = 0; i < [permissionsToVerify count]; i++)
-			{
-				if ( ! [accessToken.permissions containsObject:[permissionsToVerify objectAtIndex:i]] )
-				{
-					release = true;
-					error = [[NSError alloc] initWithDomain:@"com.facebook" code:123 userInfo:nil];
-					break;
-				}
-			}
-		}
-		
 		ReauthorizationCompleted(error);
-		
-		if ( release )
-		{
-			[error release];
-		}
 	}
 }
 
@@ -769,7 +749,7 @@ IOSFBConnect::RequestPermissions( NSArray *readPermissions, NSArray *publishPerm
 			
 			[fLoginManager logInWithReadPermissions:readPermissions handler:^( FBSDKLoginManagerLoginResult *result, NSError *error )
 			 {
-				 HandleRequestPermissionsResponse( readPermissions, result, error );
+				 HandleRequestPermissionsResponse( result, error );
 			 }];
 		}
 		else if ( publishPermissions && publishPermissions.count > 0 )
@@ -777,7 +757,7 @@ IOSFBConnect::RequestPermissions( NSArray *readPermissions, NSArray *publishPerm
 			// If there aren't any read permissions and the number of requested permissions is > 0 then they have to be publish permissions
 			[fLoginManager logInWithPublishPermissions:publishPermissions handler:^( FBSDKLoginManagerLoginResult *result, NSError *error )
 			 {
-				 HandleRequestPermissionsResponse( publishPermissions, result, error );
+				 HandleRequestPermissionsResponse( result, error );
 			 }];
 		}
 		else if ( ! accessToken )
