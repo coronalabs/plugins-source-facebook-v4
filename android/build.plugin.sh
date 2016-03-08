@@ -78,9 +78,10 @@ fi
 checkError
 
 echo "pushd Android Facebook SDK"
-pushd ../sdk/android/4.5.0/facebook > /dev/null
+# For building from Facebook Android SDK Github repo.
+pushd ../sdk/android/src/facebook/src/main > /dev/null
 echo "Create a local.properties for the facebook sdk"
-"$SDK_PATH/tools/android" update project -p `pwd` --target android-21
+"$SDK_PATH/tools/android" update project -p `pwd` --target android-23
 echo "ant clean"
 ant clean
 echo "ant release"
@@ -128,9 +129,11 @@ if [ "$OUTPUT_PLUGIN_DIR_ANDROID" ]
 then
 	cp -v "$path/metadata.lua" "$OUTPUT_PLUGIN_DIR_ANDROID"
 	cp -v "$JAR_PATH" "$OUTPUT_PLUGIN_DIR_ANDROID"
-	cp -v "$path/../sdk/android/4.5.0/facebook/libs/"* "$OUTPUT_PLUGIN_DIR_ANDROID"
-	cp -v "$path/../sdk/android/4.5.0/facebook/bin/classes.jar" "$OUTPUT_PLUGIN_DIR_ANDROID/facebook_sdk.jar"
+	# For building from Facebook Android SDK Github repo.
+	cp -v "$path/../sdk/android/src/libs/"* "$OUTPUT_PLUGIN_DIR_ANDROID"
+	cp -v "$path/../sdk/android/src/facebook/src/main/bin/classes.jar" "$OUTPUT_PLUGIN_DIR_ANDROID/facebook_sdk.jar"
 	mkdir -p "$OUTPUT_PLUGIN_DIR_ANDROID/resources/res"
-	cp -r "$path/../sdk/android/4.5.0/facebook/res/" "$OUTPUT_PLUGIN_DIR_ANDROID/resources/res"
+	# For building from Facebook Android SDK Github repo.
+	cp -r "$path/../sdk/android/src/facebook/src/main/res/" "$OUTPUT_PLUGIN_DIR_ANDROID/resources/res"
 	cp -v "$path/package.txt" "$OUTPUT_PLUGIN_DIR_ANDROID/resources/"
 fi

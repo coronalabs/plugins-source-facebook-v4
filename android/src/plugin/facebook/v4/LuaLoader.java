@@ -58,6 +58,7 @@ public class LuaLoader implements JavaFunction {
 				new GetCurrentAccessTokenWrapper(),
 				new LoginWrapper(),
 				new LogoutWrapper(),
+				new NewLikeButtonWrapper(),
 				new PublishInstallWrapper(),
 				new RequestWrapper(),
 				new SetFBConnectListenerWrapper(),
@@ -104,13 +105,12 @@ public class LuaLoader implements JavaFunction {
 				LuaType firstArgType = L.type(index);
 				if (firstArgType == LuaType.STRING || firstArgType == LuaType.NUMBER) {
 					// Warn the user about using deprecated login API
-					Log.v("Corona", "WARNING: " + methodName + APP_ID_ERR_MSG);
+					Log.i("Corona", "WARNING: " + methodName + APP_ID_ERR_MSG);
 					// Process the remaining arguments
 					index++;
 				}
 
 				if (CoronaLua.isListener(L, index, "fbconnect")) {
-					//Log.d("Corona", "Found a listener to invoke after login finishes");
 					FacebookController.setFBConnectListener(CoronaLua.newRef(L, index));
 					index++;
 				}
@@ -143,6 +143,37 @@ public class LuaLoader implements JavaFunction {
 		}
 	}
 
+	private class NewLikeButtonWrapper implements NamedJavaFunction {
+		@Override
+		public String getName() {
+			return "newLikeButton";
+		}
+
+		@Override
+		public int invoke(LuaState L) {
+			String methodName = "facebook." + getName() + "()";
+
+			// Parse args if there are any
+			if (L.getTop() != 0) {
+				// Check for an options table
+				if (L.type(1) == LuaType.TABLE) {
+					// Grab all the optional arguments from here
+				} else {
+					// Yell at the user for passing garbage arguments and return.
+					Log.i("Corona", "ERROR: " + methodName + ": cannot accept arguments other " +
+							"than an options table. Aborting!");
+					return 0;
+				}
+			} else {
+				// Insert default arguments to facebookNewLikeButton()
+			}
+
+			//FacebookController.facebookNewLikeButton();
+
+			return 0;
+		}
+	}
+
 	private class PublishInstallWrapper implements NamedJavaFunction {
 		@Override
 		public String getName() {
@@ -154,7 +185,7 @@ public class LuaLoader implements JavaFunction {
 			String methodName = "facebook." + getName() + "()";
 			if (L.getTop() != 0) {
 				// Warn the user about using deprecated login API
-				Log.v("Corona", "WARNING: " + methodName + APP_ID_ERR_MSG);
+				Log.i("Corona", "WARNING: " + methodName + APP_ID_ERR_MSG);
 			}
 			FacebookController.publishInstall();
 			return 0;
@@ -208,10 +239,9 @@ public class LuaLoader implements JavaFunction {
 		public int invoke(LuaState L) {
 			String methodName = "facebook." + getName() + "()";
 			if (CoronaLua.isListener(L, 1, "fbconnect")) {
-				//Log.d("Corona", "Found a FBConnect listener");
 				FacebookController.setFBConnectListener(CoronaLua.newRef(L, 1));
 			} else {
-				Log.v("Corona", "ERROR: " + methodName + ": Please provide a listener.");
+				Log.i("Corona", "ERROR: " + methodName + ": Please provide a listener.");
 			}
 			return 0;
 		}
@@ -240,7 +270,7 @@ public class LuaLoader implements JavaFunction {
 				FacebookController.facebookDialog(action, params);
 
 			} else {
-				Log.v("Corona", "ERROR: " + methodName +
+				Log.i("Corona", "ERROR: " + methodName +
 						FacebookController.INVALID_PARAMS_SHOW_DIALOG_ERR_MSG);
 			}
 

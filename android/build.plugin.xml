@@ -91,9 +91,10 @@
             <mkdir dir="libs" />
             <copy file="${CoronaEnterpriseDir}/Corona/android/lib/Corona/libs/JNLua.jar" todir="libs" />
             <copy file="${CoronaEnterpriseDir}/Corona/android/lib/Corona/libs/Corona.jar" todir="libs" />
-            <copy file="../sdk/android/4.5.0/facebook/bin/classes.jar" todir="libs" />
+            <!-- For building from Facebook Android SDK Github repo. -->
+            <copy file="../sdk/android/src/facebook/src/main/bin/classes.jar" todir="libs" />
             <copy todir="libs" >
-                <fileset dir="../sdk/android/4.5.0/facebook/libs/" />
+                <fileset dir="../sdk/android/src/libs/" />
             </copy>
         </sequential>
     </macrodef>

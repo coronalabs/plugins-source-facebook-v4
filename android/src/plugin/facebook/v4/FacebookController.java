@@ -37,6 +37,9 @@ import com.ansca.corona.CoronaRuntime;
 import com.ansca.corona.CoronaRuntimeProvider;
 import com.ansca.corona.CoronaRuntimeTask;
 import com.ansca.corona.events.EventManager;
+import com.ansca.corona.permissions.PermissionState;
+import com.ansca.corona.permissions.PermissionsSettings;
+import com.ansca.corona.permissions.PermissionsServices;
 import com.ansca.corona.storage.FileServices;
 
 /*
@@ -108,6 +111,8 @@ public class FacebookController {
     private static CallbackManager sCallbackManager;
     private static AccessTokenTracker sAccessTokenTracker;
     private static CoronaRuntime sCoronaRuntime;
+    private static PermissionsServices sPermissionsServices;
+    private static Intent sPlacesOrFriendsIntent;
     // TODO: Add this back in for automatic token refresh.
     //private static final AtomicBoolean accessTokenRefreshInProgress = new AtomicBoolean(false);
 
@@ -136,12 +141,10 @@ public class FacebookController {
                     // Grab the method name for error messages:
                     String methodName = "FacebookController.loginCallback.onSuccess()";
 
-                    //Log.d("Corona", "Facebook login succeeded!");
-
                     AccessToken currentAccessToken = AccessToken.getCurrentAccessToken();
                     if (currentAccessToken == null || // Should never happen if login was successful
                             !loginResults.getAccessToken().equals(currentAccessToken)) {
-                        Log.v("Corona", "ERROR: " + methodName + ": lost the access token. This " +
+                        Log.i("Corona", "ERROR: " + methodName + ": lost the access token. This " +
                                 "could be the result of another thread completing " +
                                 "facebook.logout() before this callback was invoked.");
                         return;
@@ -157,7 +160,6 @@ public class FacebookController {
                 public void onCancel() {
                     // Grab the method name for error messages:
                     String methodName = "FacebookController.loginCallback.onCancel()";
-                    //Log.d("Corona", "Facebook login cancelled!");
 
                     dispatchLoginFBConnectTask(methodName,
                             FBLoginEvent.Phase.loginCancelled, null, 0);
@@ -167,8 +169,6 @@ public class FacebookController {
                 public void onError(FacebookException exception) {
                     // Grab the method name for error messages:
                     String methodName = "FacebookController.loginCallback.onError()";
-                    //Log.d("Corona", "Facebook login failed with exception:\n"
-                    //        + exception.getLocalizedMessage());
 
                     dispatchLoginErrorFBConnectTask(methodName, exception.getLocalizedMessage());
                 }
@@ -183,7 +183,6 @@ public class FacebookController {
                 public void onSuccess(Sharer.Result result) {
                     // Grab the method name for error messages:
                     String methodName = "FacebookController.shareCallback.onSuccess()";
-                    //Log.d("Corona", "Share dialog succeeded!");
 
                     // Compose response with info about what happened
                     Uri.Builder builder = new Uri.Builder();
@@ -201,7 +200,6 @@ public class FacebookController {
                 public void onCancel() {
                     // Grab the method name for error messages:
                     String methodName = "FacebookController.shareCallback.onCancel()";
-                    //Log.d("Corona", "Share dialog was Canceled");
 
                     dispatchDialogFBConnectTask(methodName, DIALOG_CANCELLED_MSG, false, true);
                 }
@@ -210,7 +208,6 @@ public class FacebookController {
                 public void onError(FacebookException error) {
                     // Grab the method name for error messages:
                     String methodName = "FacebookController.shareCallback.onError()";
-                    //Log.d("Corona", String.format("Error: %s", error.toString()));
 
                     dispatchDialogFBConnectTask(methodName,
                             error.getLocalizedMessage(), true, false);
@@ -226,7 +223,6 @@ public class FacebookController {
                 public void onSuccess(GameRequestDialog.Result result) {
                     // Grab the method name for error messages:
                     String methodName = "FacebookController.requestCallback.onSuccess()";
-                    //Log.d("Corona", "Request Dialog succeeded!");
 
                     // Compose response with info about what happened
                     Uri.Builder builder = new Uri.Builder();
@@ -253,7 +249,6 @@ public class FacebookController {
                 public void onCancel() {
                     // Grab the method name for error messages:
                     String methodName = "FacebookController.requestCallback.onCancel()";
-                    //Log.d("Corona", "Request dialog cancelled by user");
 
                     dispatchDialogFBConnectTask(methodName, DIALOG_CANCELLED_MSG, false, true);
                 }
@@ -262,7 +257,6 @@ public class FacebookController {
                 public void onError(FacebookException error) {
                     // Grab the method name for error messages:
                     String methodName = "FacebookController.requestCallback.onError()";
-                    //Log.d("Corona", String.format("Error: %s", error.toString()));
 
                     dispatchDialogFBConnectTask(methodName,
                             error.getLocalizedMessage(), true, false);
@@ -270,6 +264,7 @@ public class FacebookController {
             };
     /**********************************************************************************************/
     /******************************** Facebook SDK Utilities **************************************/
+    // TODO: JUST MAKE THESE PUBLIC IN THE FACEBOOK SDK SIINCE WE FORK IT ANYWAY!
     // This was brought up from the Facebook SDK (where it was private)
     // and reimplemented to be more maintainable by Corona in the future
     private static final String PUBLISH_PERMISSION_PREFIX = "publish";
@@ -312,7 +307,7 @@ public class FacebookController {
             runtime.getTaskDispatcher().send(new FBConnectTask(
                     sListener, phase, accessToken, tokenExpiration));
         } else {
-            Log.v("Corona", "ERROR: " + fromMethod + NO_RUNTIME_ERR_MSG);
+            Log.i("Corona", "ERROR: " + fromMethod + NO_RUNTIME_ERR_MSG);
             return;
         }
     }
@@ -326,7 +321,7 @@ public class FacebookController {
             runtime.getTaskDispatcher().send(
                     new FBConnectTask(sListener, msg));
         } else {
-            Log.v("Corona", "ERROR: " + fromMethod + NO_RUNTIME_ERR_MSG);
+            Log.i("Corona", "ERROR: " + fromMethod + NO_RUNTIME_ERR_MSG);
             return;
         }
     }
@@ -342,7 +337,7 @@ public class FacebookController {
             runtime.getTaskDispatcher().send(new FBConnectTask(
                     sListener, msg, isError, didComplete));
         } else {
-            Log.v("Corona", "ERROR: " + fromMethod + NO_RUNTIME_ERR_MSG);
+            Log.i("Corona", "ERROR: " + fromMethod + NO_RUNTIME_ERR_MSG);
             return;
         }
     }
@@ -365,7 +360,7 @@ public class FacebookController {
         if (runtime != null) {
             return runtime.getLuaState();
         } else {
-            Log.v("Corona", "ERROR: " + methodName + NO_RUNTIME_ERR_MSG);
+            Log.i("Corona", "ERROR: " + methodName + NO_RUNTIME_ERR_MSG);
             return null;
         }
     }
@@ -394,14 +389,14 @@ public class FacebookController {
         String methodName = "FacebookController.createLuaTableFromStringArray()";
 
         if (array == null) {
-            Log.v("Corona", "ERROR: " + methodName + ": cannot create a lua table from a null " +
+            Log.i("Corona", "ERROR: " + methodName + ": cannot create a lua table from a null " +
                     "array! Please pass in a non-null string array.");
             return 0;
         }
 
         LuaState L = fetchLuaState();
         if (L == null) {
-            Log.v("Corona", "ERROR: " + methodName + NO_LUA_STATE_ERR_MSG);
+            Log.i("Corona", "ERROR: " + methodName + NO_LUA_STATE_ERR_MSG);
             return 0;
         }
 
@@ -474,10 +469,10 @@ public class FacebookController {
         // Throw an exception if this application does not have the internet permission.
         // Without it the webdialogs won't show.
         if (activity != null) {
-            //Log.d("Corona", "Enforce Internet permission");
+            // TODO: USE PERMISSIONS FRAMEWORK TO ENFORCE INTERNET PERMISSION HERE!
             activity.enforceCallingOrSelfPermission(permission.INTERNET, null);
         } else {
-            Log.v("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
+            Log.i("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
             return;
         }
 
@@ -490,7 +485,6 @@ public class FacebookController {
                     activity.getPackageName(), PackageManager.GET_META_DATA);
             Bundle bundle = ai.metaData;
             String facebookAppId = bundle.getString("com.facebook.sdk.ApplicationId");
-            //Log.d("Corona", "facebookAppId: " + facebookAppId);
             if (facebookAppId == null) {
                 activity.getHandler().post( new Runnable() {
                     @Override
@@ -554,15 +548,13 @@ public class FacebookController {
 
         CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
         if (activity == null) {
-            Log.v("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
+            Log.i("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
             return;
         }
-        //Log.d("Corona", "Actually log the user in with requried permissions");
         // The "public_profile" permission as this is expected of facebook.
         // We include the "user_friends" permission by default for legacy reasons.
         LoginManager.getInstance().logInWithReadPermissions(activity,
                 Arrays.asList("public_profile", "user_friends"));
-        //Log.d("Corona", "<--Leaving facebook login");
     }
 
     private static void requestPermissions(String permissions[]) {
@@ -570,7 +562,7 @@ public class FacebookController {
         String methodName = "FacebookController.requestPermissions()";
 
         if (permissions == null) {
-            Log.v("Corona", "ERROR: " + methodName + ": Permissions held by this app" +
+            Log.i("Corona", "ERROR: " + methodName + ": Permissions held by this app" +
                     " are null. Be sure to provide at least an empty permission list" +
                     " to facebook.login() before requesting permissions.");
             return;
@@ -579,7 +571,6 @@ public class FacebookController {
         // Remove the permissions we already have access to
         // so that we don't try to get access to them again
         // causing constant flashes on the screen
-        //Log.d("Corona", "Scanning permissions list");
         AccessToken currentAccessToken = AccessToken.getCurrentAccessToken();
         if (currentAccessToken != null) {
             Set grantedPermissions = currentAccessToken.getPermissions();
@@ -597,7 +588,6 @@ public class FacebookController {
         List<String> readPermissions = new LinkedList<String>();
         List<String> publishPermissions = new LinkedList<String>();
 
-        //Log.d("Corona", "Found permissions that need to be requested again");
         for (int i = 0; i < permissions.length; i++) {
             if (permissions[i] != null) {
                 if (isPublishPermission(permissions[i])) {
@@ -619,14 +609,13 @@ public class FacebookController {
             if (!readPermissions.contains(requiredPermissions[i]) &&
                     (currentAccessToken == null ||
                     !currentAccessToken.getPermissions().contains(requiredPermissions[i]))) {
-                //Log.d("Corona", "Adding required permission: " + requiredPermissions[i]);
                 readPermissions.add(requiredPermissions[i]);
             }
         }
 
         CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
         if (activity == null) {
-            Log.v("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
+            Log.i("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
             return;
         }
 
@@ -635,7 +624,7 @@ public class FacebookController {
             // Throw a warning if the user is trying to request
             // read and publish permissions at the same time.
             if (!publishPermissions.isEmpty()) {
-                Log.v("Corona", "WARNING: " + methodName + ": cannot process read and publish " +
+                Log.i("Corona", "WARNING: " + methodName + ": cannot process read and publish " +
                         "permissions at the same time. Only the read permissions will be " +
                         "requested.");
             }
@@ -649,7 +638,6 @@ public class FacebookController {
         } else {
             // We've already been granted all these permissions.
             // Return sucessful login phase so Lua can move on.
-            //Log.d("Corona", "All Permissions have been granted!");
             dispatchLoginFBConnectTask(methodName, FBLoginEvent.Phase.login,
                     currentAccessToken.getToken(),
                     toSecondsFromMilliseconds(currentAccessToken.getExpires().getTime()));
@@ -663,6 +651,25 @@ public class FacebookController {
                 action.equals("video") ||
                 action.equals("openGraph");
     }
+
+    /**
+     * Brings up a dialog, asking the user for permission to access the location hardware.
+     */
+    private static void requestLocationPermission() {
+
+        if (sPermissionsServices == null) {
+            sPermissionsServices = new PermissionsServices(
+                    CoronaEnvironment.getApplicationContext());
+        }
+        // Create our Permissions Settings to compare against in the handler.
+        String[] permissionsToRequest = sPermissionsServices.
+                findAllPermissionsInManifestForGroup(PermissionsServices.PermissionGroup.LOCATION);
+
+        // Request Location permission.
+        sPermissionsServices.requestPermissions(new PermissionsSettings(permissionsToRequest),
+                new LocationRequestPermissionsResultHandler());
+    }
+
     /**********************************************************************************************/
     /********************************** API Implementations ***************************************/
     /**
@@ -678,18 +685,18 @@ public class FacebookController {
         // Grab the method name for error messages:
         String methodName = "FacebookController.facebookInit()";
 
-        //Log.d("Corona", "Begin initializing everything");
-
         final CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
         if (activity == null) {
-            Log.v("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
+            Log.i("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
             return;
         } else {
+            sPermissionsServices = new PermissionsServices(
+                    CoronaEnvironment.getApplicationContext());
             verifySetup(activity);
         }
 
         if (runtime == null) {
-            Log.v("Corona", "ERROR: " + methodName + NO_RUNTIME_ERR_MSG);
+            Log.i("Corona", "ERROR: " + methodName + NO_RUNTIME_ERR_MSG);
             return;
         } else {
             sCoronaRuntime = runtime;
@@ -697,7 +704,7 @@ public class FacebookController {
 
         LuaState L = fetchLuaState();
         if (L == null) {
-            Log.v("Corona", "ERROR: " + methodName + NO_LUA_STATE_ERR_MSG);
+            Log.i("Corona", "ERROR: " + methodName + NO_LUA_STATE_ERR_MSG);
             return;
         } else {
             // Initialize currentAccessToken field and isActive fields
@@ -716,30 +723,23 @@ public class FacebookController {
             @Override
             public void run() {
 
-                //Log.d("Corona", "Register Activity Result Handler and get " +
-                //        "requestCode offset for Facebook SDK");
                 int requestCodeOffset = activity.registerActivityResultHandler(
                         new FacebookActivityResultHandler(), 100);
 
                 // Initialize the Facebook SDK
                 FacebookSdk.sdkInitialize(activity.getApplicationContext(), requestCodeOffset);
-                //Log.d("Corona", "Facebook SDK initialized");
 
-                //Log.d("Corona", "Create the Callback Manager");
                 // Create our callback manager and set up forwarding of login results
                 sCallbackManager = CallbackManager.Factory.create();
 
                 // Callback registration
-                //Log.d("Corona", "Register login callback");
                 LoginManager.getInstance().registerCallback(sCallbackManager, loginCallback);
 
-                //Log.d("Corona", "Create the Share dialog");
                 sShareDialog = new ShareDialog(activity);
                 sShareDialog.registerCallback(
                         sCallbackManager,
                         shareCallback);
 
-                //Log.d("Corona", "Create the Request Dialog");
                 sRequestDialog = new GameRequestDialog(activity);
                 sRequestDialog.registerCallback(
                         sCallbackManager,
@@ -762,8 +762,6 @@ public class FacebookController {
                                         "onCurrentAccessTokenChanged.accessTokenToLuaTask." +
                                         "executeUsing()";
 
-                                //Log.d("Corona", "In onCurrentAccessTokenChanged()");
-
                                 // We grab a new reference to the Lua state here as opposed to
                                 // declaring a final variable containing the Lua State to cover the
                                 // case of the initial LuaState being closed by something out of our
@@ -771,7 +769,7 @@ public class FacebookController {
                                 // recreating it.
                                 LuaState L = fetchLuaState();
                                 if (L == null) {
-                                    Log.v("Corona", "ERROR: " + methodName
+                                    Log.i("Corona", "ERROR: " + methodName
                                             + NO_LUA_STATE_ERR_MSG);
                                     return;
                                 } else {
@@ -790,7 +788,7 @@ public class FacebookController {
                                     L.setField(-2, "currentAccessToken");
                                     L.pop(1);
 
-                                    // TODO: Add this back in for getGrantedPermissions API
+                                    // TODO: Add this back in for automatic access token refresh.
                                     //accessTokenRefreshInProgress.set(false);
                                 }
                             }
@@ -816,7 +814,6 @@ public class FacebookController {
             accessToken = currentAccessToken.getToken();
         }
         L.pushString(accessToken);
-        //Log.d("Corona", "Initial Access Token: " + accessToken);
         L.setField(-2, "currentAccessToken");
 
         L.pushBoolean(true);
@@ -833,7 +830,7 @@ public class FacebookController {
 
         LuaState L = fetchLuaState();
         if (L == null) {
-            Log.v("Corona", "ERROR: " + methodName + NO_LUA_STATE_ERR_MSG);
+            Log.i("Corona", "ERROR: " + methodName + NO_LUA_STATE_ERR_MSG);
             return 0;
         }
 
@@ -899,16 +896,14 @@ public class FacebookController {
     public static void facebookLogin(String permissions[]) {
         // Grab the method name for error messages:
         String methodName = "FacebookController.facebookLogin()";
-        //Log.d("Corona", "-->In facebook login");
 
         if (permissions == null) {
-            Log.v("Corona", "ERROR: " + methodName + ": Can't set permissions to null! " +
+            Log.i("Corona", "ERROR: " + methodName + ": Can't set permissions to null! " +
                     "Be sure to pass in an initialized array of permissions.");
             return;
         } else if (permissions.length == 0) {
             loginWithOnlyRequiredPermissions();
         } else {
-            //Log.d("Corona", "Login with extended permissions");
             // We want to request some extended permissions.
             requestPermissions(permissions);
         }
@@ -923,14 +918,12 @@ public class FacebookController {
             // Grab the method name for error messages:
             String methodName = "FacebookController." +
                     "FacebookActivityResultHandler.onHandleActivityResult()";
-            //Log.d("Corona", "In Activity Result Handler");
 
             if (sCallbackManager != null) {
-                //Log.d("Corona", "Invoking sCallbackManager.onActivityResult()");
                 sCallbackManager.onActivityResult(requestCode, resultCode, data);
             }
             else {
-                Log.v("Corona", "ERROR: " + methodName + ": Facebook's Callback manager isn't " +
+                Log.i("Corona", "ERROR: " + methodName + ": Facebook's Callback manager isn't " +
                         "initialized. Be sure to initialize the callback manager before the " +
                         "FacebookActivityResultHandler is called.");
             }
@@ -951,10 +944,8 @@ public class FacebookController {
     public static void facebookLogout() {
         // Grab the method name for error messages:
         String methodName = "FacebookController.facebookLogout()";
-        //Log.d("Corona", "Log the user out");
 
         LoginManager.getInstance().logOut();
-        //Log.d("Corona", "user is logged out");
 
         dispatchLoginFBConnectTask(methodName, FBLoginEvent.Phase.logout, null, 0);
     }
@@ -976,7 +967,7 @@ public class FacebookController {
             // Verify params and environment
             CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
             if (activity == null) {
-                Log.v("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
+                Log.i("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
                 return;
             }
 
@@ -985,7 +976,7 @@ public class FacebookController {
             if (httpMethod != HttpMethod.GET
                     && httpMethod != HttpMethod.POST
                     && httpMethod != HttpMethod.DELETE) {
-                Log.v("Corona", "ERROR: " + methodName + ": only supports " +
+                Log.i("Corona", "ERROR: " + methodName + ": only supports " +
                         "HttpMethods GET, POST, and DELETE! Cancelling request.");
                 return;
             }
@@ -1000,7 +991,6 @@ public class FacebookController {
 
             final GraphRequest finalRequest = myRequest;
 
-            //Log.d("Corona", "Invoke facebook.request()");
             // The facebook documentation says this should only be run on the UI thread
             activity.runOnUiThread(new Runnable() {
                 @Override
@@ -1011,7 +1001,7 @@ public class FacebookController {
         } else {
             // Can't perform a Graph Request without being logged in.
             // TODO: Log the user in, and then retry the same Graph API request.
-            Log.v("Corona", "ERROR: " + methodName + ": cannot process a Graph API request " +
+            Log.i("Corona", "ERROR: " + methodName + ": cannot process a Graph API request " +
                     "without being logged in. Please call facebook.login() before calling " +
                     "facebook.request()." );
         }
@@ -1021,7 +1011,6 @@ public class FacebookController {
         @Override
         public void onCompleted(GraphResponse response)
         {
-            //Log.d("Corona", "Got callback from facebook.request()");
             // Grab the method name for error messages:
             String methodName = "FacebookController.FacebookRequestCallbackListener.onCompleted()";
 
@@ -1030,29 +1019,23 @@ public class FacebookController {
             // Activity got destroyed.
             CoronaRuntime runtime = sCoronaRuntime;
             if (runtime == null) {
-                Log.v("Corona", "ERROR: " + methodName + NO_RUNTIME_ERR_MSG);
+                Log.i("Corona", "ERROR: " + methodName + NO_RUNTIME_ERR_MSG);
                 return;
             }
 
-            //Log.d("Corona", "In onComplete after initiating a GraphRequest");
             if (runtime.isRunning() && response != null) {
-                //Log.d("Corona", "Composing response to Lua");
                 if (response.getError() != null) {
-                    //Log.d("Corona", "Send error to lua");
                     runtime.getTaskDispatcher().send(new FBConnectTask(sListener,
                             response.getError().getErrorMessage(), true));
                 } else {
                     String message = "";
-                    //Log.d("Corona", "Have data to send to lua");
                     if (response.getJSONObject() != null &&
                             response.getJSONObject().toString() != null) {
-                        //Log.d("Corona", "Data is valid");
                         message = response.getJSONObject().toString();
                     } else {
-                        Log.v("Corona", "ERROR: " + methodName +
+                        Log.i("Corona", "ERROR: " + methodName +
                                 ": could not parse the response from Facebook!");
                     }
-                    //Log.d("Corona", "Send data to Lua");
                     runtime.getTaskDispatcher().send(new FBConnectTask(sListener, message, false));
                 }
 
@@ -1060,7 +1043,7 @@ public class FacebookController {
                 String runtimeNotRunning = "the corona runtime isn't running!";
                 String noFBResponse = "facebook didn't give a response!";
                 String reason = !runtime.isRunning() ? runtimeNotRunning : noFBResponse;
-                Log.v("Corona", "ERROR: " + methodName +
+                Log.i("Corona", "ERROR: " + methodName +
                         ": could not send a response because " + reason);
             }
         }
@@ -1071,7 +1054,7 @@ public class FacebookController {
      * @param action: The type of dialog to open
      * @param params: Table of arguments to the desired dialog
      *
-     * TODO: Finish new options for showDialog so that "link" actually makes sense here
+     * TODO: Finish new options for showDialog so that "link" actually makes sense in context.
      * TODO: For sharing photos from deviceSupport loading bitmaps from app - Added in SDK 4+
      * TODO: For sharing photos from deviceCheck if image is 200x200
      * TODO: For sharing photos from device, have it work without FB app,
@@ -1087,7 +1070,7 @@ public class FacebookController {
         // Verify params and environment
         final CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
         if (activity == null) {
-            Log.v("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
+            Log.i("Corona", "ERROR: " + methodName + NO_ACTIVITY_ERR_MSG);
             return;
         }
 
@@ -1097,7 +1080,7 @@ public class FacebookController {
         if (L != null && CoronaLua.isListener(L, -1, "")) {
             listener = CoronaLua.newRef(L, -1);
         } else if (L == null) {
-            Log.v("Corona", "ERROR: " + methodName + NO_LUA_STATE_ERR_MSG);
+            Log.i("Corona", "ERROR: " + methodName + NO_LUA_STATE_ERR_MSG);
             return;
         }
 
@@ -1183,7 +1166,7 @@ public class FacebookController {
                         actionType = (ActionType) enumValueOfIgnoreCase
                                 (ActionType.class, (String) actionTypeObject);
                     } else if (actionTypeObject != null) {
-                        Log.v("Corona", "ERROR: " + methodName +
+                        Log.i("Corona", "ERROR: " + methodName +
                                 INVALID_PARAMS_SHOW_DIALOG_ERR_MSG +
                                 " options.actionType must be a string!");
                         return;
@@ -1199,7 +1182,7 @@ public class FacebookController {
                         filter = (Filters) enumValueOfIgnoreCase
                                 (Filters.class, (String) filterObject);
                     } else if (filterObject != null) {
-                        Log.v("Corona", "ERROR: " + methodName +
+                        Log.i("Corona", "ERROR: " + methodName +
                                 INVALID_PARAMS_SHOW_DIALOG_ERR_MSG +
                                 " options.filter must be a string!");
                         return;
@@ -1217,7 +1200,7 @@ public class FacebookController {
                         for (Object suggestion : suggestionsCollection) {
                             if (!(suggestion instanceof String) ||
                                     !((String)suggestion).matches("[0-9]+")) {
-                                Log.v("Corona", "ERROR: " + methodName +
+                                Log.i("Corona", "ERROR: " + methodName +
                                         INVALID_PARAMS_SHOW_DIALOG_ERR_MSG +
                                         " options.suggestions must contain Facebook User IDs as " +
                                         "strings!");
@@ -1245,17 +1228,32 @@ public class FacebookController {
                     sRequestDialog.show(requestContent);
                 } else if (action.equals("place") || action.equals("friends")) {
                     // There are no facebook dialog for these
-                    // Enforce location permission for places
-                    if (action.equals("place")) {
-                        activity.enforceCallingOrSelfPermission(
-                                permission.ACCESS_FINE_LOCATION, null);
-                    }
-                    Intent intent = new Intent(activity, FacebookFragmentActivity.class);
-                    intent.putExtra(FacebookFragmentActivity.FRAGMENT_NAME, action);
-                    intent.putExtra(FacebookFragmentActivity.FRAGMENT_LISTENER, finalListener);
-                    intent.putExtra(FacebookFragmentActivity.FRAGMENT_EXTRAS,
+                    sPlacesOrFriendsIntent = new Intent(activity, FacebookFragmentActivity.class);
+                    sPlacesOrFriendsIntent.putExtra(FacebookFragmentActivity.FRAGMENT_NAME, action);
+                    sPlacesOrFriendsIntent.putExtra(FacebookFragmentActivity.FRAGMENT_LISTENER,
+                            finalListener);
+                    sPlacesOrFriendsIntent.putExtra(FacebookFragmentActivity.FRAGMENT_EXTRAS,
                             createFacebookBundle(params));
-                    activity.startActivity(intent);
+                    // Handle location permission for places
+                    if (action.equals("place")) {
+                        switch (sPermissionsServices.getPermissionStateForSupportedGroup(
+                                PermissionsServices.PermissionGroup.LOCATION)) {
+                            case DENIED:
+                                if (android.os.Build.VERSION.SDK_INT >= 23) {
+                                    requestLocationPermission();
+                                } // Otherwise, the OS has denied us Location permission.
+                                break;
+                            case MISSING:
+                                // We can uses "Fackbook Places" without Location permission.
+                                // It just won't work as well.
+                            default:
+                                // Granted. Move on.
+                                activity.startActivity(sPlacesOrFriendsIntent);
+                                break;
+                        }
+                    } else {
+                        activity.startActivity(sPlacesOrFriendsIntent);
+                    }
                 } else {
 //            // TODO: Figure out what happens here since the WebDialog flow no longer applies.
 //            // This would probably be the opengraph case, like this GoT example
@@ -1281,6 +1279,29 @@ public class FacebookController {
                 }
             }
         });
+    }
+
+    /** Default handling of the location permission for Facebook Places on Android 6+. */
+    public static class LocationRequestPermissionsResultHandler
+            implements CoronaActivity.OnRequestPermissionsResultHandler {
+
+        @Override
+        public void onHandleRequestPermissionsResult(
+                CoronaActivity activity, int requestCode, String[] permissions, int[] grantResults)
+        {
+            Log.d("Corona", "In LocationRequestPermissiosnResultHandler.onHandleRequestPermissionsResult()");
+
+            PermissionsSettings permissionsSettings =
+                    activity.unregisterRequestPermissionsResultHandler(this);
+
+            if (permissionsSettings != null) {
+                permissionsSettings.markAsServiced();
+            }
+
+            // Move on to Facebook places regardless of the state of the Location permission.
+            // We do this because the Location permission is optional.
+            activity.startActivity(sPlacesOrFriendsIntent);
+        }
     }
 
     /**

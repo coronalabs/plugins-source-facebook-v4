@@ -41,11 +41,9 @@ import org.json.JSONObject;
 import org.json.JSONArray;
 import org.json.JSONException;
 
-// TODO: Remove all logs before checking in
 import android.util.Log;
 
 import com.naef.jnlua.LuaState;
-import com.ansca.corona.Controller;
 
 public class FacebookFragmentActivity extends FragmentActivity {
 	/************************************** Member Variables **************************************/
@@ -53,7 +51,7 @@ public class FacebookFragmentActivity extends FragmentActivity {
 	public static final String FRAGMENT_LISTENER = "fragment_listener";
 	public static final String FRAGMENT_EXTRAS = "fragment_extras";
 
-	// From PickerActivity.java in Facebook SDK 4+
+	// TODO: JUST GRAB THIS FROM OUR FORKED FACEBOOK SDK. From PickerActivity.java in Facebook SDK 4+
 	private static final int LOCATION_CHANGE_THRESHOLD = 50; // meters
 
 	private static final int CONTENT_VIEW_ID = 192875;
@@ -65,7 +63,7 @@ public class FacebookFragmentActivity extends FragmentActivity {
 	/**********************************************************************************************/
 	/********************************** Utility Functions *****************************************/
 	private void printIllegalFragmentTypeMessage(String fromMethod) {
-		Log.v("Corona", "ERROR: " + fromMethod + ": can't launch Fragment " + mFragmentToLaunch +
+		Log.i("Corona", "ERROR: " + fromMethod + ": can't launch Fragment " + mFragmentToLaunch +
 				". Acceptable fragment types are: \"place\" and \"friends\"");
 	}
 
@@ -112,8 +110,6 @@ public class FacebookFragmentActivity extends FragmentActivity {
 			private void pushGraphUser(LuaState L, JSONObject graphUser, int index) {
 				L.newTable(0, 4);
 
-				//Log.d("Corona", "FacebookFragmentActivity.pushFriendSelection.pushGraphUser()," +
-				//		" graphUser:\n" + graphUser.toString());
 				// This is so we can push the proper data to Lua
 				// Facebook SDK 4+, doesn't have First or Last name fields unlike previous versions
 				try {
@@ -140,8 +136,6 @@ public class FacebookFragmentActivity extends FragmentActivity {
 						// event.data
 						L.newTable(0, 11);
 
-						//Log.d("Corona", "FacebookFragmentActivity.pushPlaceSelection." +
-						//		"executeUsing(), placeSelection:\n" + placeSelection.toString());
 						// This is so we can push the proper data to Lua
 						try {
 							pushStringIfNotNull(L,
@@ -335,7 +329,6 @@ public class FacebookFragmentActivity extends FragmentActivity {
 							mLocationListener = new LocationListener() {
 								@Override
 								public void onLocationChanged(Location location) {
-									//Log.d("Corona", "In LocationListener.onLocationChanged()");
 									boolean updateLocation = true;
 									Location prevLocation = placePickerFragment.getLocation();
 									if (prevLocation != null) {
@@ -350,41 +343,36 @@ public class FacebookFragmentActivity extends FragmentActivity {
 
 								@Override
 								public void onStatusChanged(String s, int i, Bundle bundle) {
-									//Log.d("Corona", "In LocationListener.onStatusChanged()");
 								}
 
 								@Override
 								public void onProviderEnabled(String s) {
-									//Log.d("Corona", "In LocationListener.onProviderEnabled()");
 								}
 
 								@Override
 								public void onProviderDisabled(String s) {
-									//Log.d("Corona", "In LocationListener.onProviderDisabled()");
 								}
 							};
 						}
 
-						//Log.d("Corona", "Start taking location updates");
 						locationManager.requestLocationUpdates(bestProvider, 1,
 								LOCATION_CHANGE_THRESHOLD, mLocationListener,
 								Looper.getMainLooper());
 					} else {
-						Log.v("Corona", "WARNING: " + methodName + ": is trying to use a " +
+						Log.i("Corona", "WARNING: " + methodName + ": is trying to use a " +
 								"location provider that's disabled! Location services will " +
 								"not be started.");
 					}
 				} else {
-					Log.v("Corona", "WARNING: " + methodName + ": couldn't find a location " +
+					Log.i("Corona", "WARNING: " + methodName + ": couldn't find a location " +
 							"provider! Location services will not be started.");
 				}
 
 				if (mLocation != null) {
-					//Log.d("Corona", "In FacebookFragmentActivity.onStart() with valid location");
 					placePickerFragment.setLocation(mLocation);
 					placePickerFragment.loadData(false);
 				} else {
-					Log.v("Corona", "ERROR: " + methodName + ": doesn't have a starting location." +
+					Log.i("Corona", "ERROR: " + methodName + ": doesn't have a starting location." +
 							" Places Picker Fragment will not be shown.");
 				}
 			} else {
@@ -393,7 +381,6 @@ public class FacebookFragmentActivity extends FragmentActivity {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			//Log.d("Corona", "FacebookFragmentActivity.onStart(): Bad things happened!");
 		}
 	}
 
@@ -404,7 +391,6 @@ public class FacebookFragmentActivity extends FragmentActivity {
 
 		// Stop taking location updates if applicable
 		if (mLocationListener != null) {
-			//Log.d("Corona", "Stop taking location updates");
 			LocationManager locationManager =
 					(LocationManager) getSystemService(Context.LOCATION_SERVICE);
 			locationManager.removeUpdates(mLocationListener);

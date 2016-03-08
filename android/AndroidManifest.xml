@@ -6,16 +6,17 @@
 	      android:installLocation="auto">
 	<!--
 	 Set the minimum and target Android API levels here to inform the app store what OS versions this app supports.
-	 Set the "minSdkVersion" to at least API level 8 (aka: Android 2.2 "Froyo") which is the minimum Corona supports.
+	 Set the "minSdkVersion" to at least API level 10 (aka: Android 2.3.3 "Gingerbread") which is the minimum Corona supports.
 	 Set the "targetSdkVersion" to the API level that you compile with. Set to a high level to avoid compatibility mode.
 	 -->
-	<uses-sdk android:minSdkVersion="10" android:targetSdkVersion="21"/>
+	<uses-sdk android:minSdkVersion="10" android:targetSdkVersion="23"/>
 	
 	<!-- Permissions required by this app. -->
 	<uses-permission android:name="android.permission.INTERNET"/>
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 	<!-- Need location for places picker. -->
 	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 	
 	<!-- Informs the app store that this app requires OpenGL ES 2.0 as a minimum. Required by Corona. -->
 	<uses-feature android:glEsVersion="0x00020000"/>
