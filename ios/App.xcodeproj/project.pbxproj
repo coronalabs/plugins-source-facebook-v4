@@ -8,21 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		303299E917737ED200DC0D82 /* CoronaResources.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 303299E817737ED200DC0D82 /* CoronaResources.bundle */; };
-		303B9A9016E66C4700CDB84F /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 303B9A8F16E66C4700CDB84F /* Default-568h@2x.png */; };
-		3070C56F16F3C537002B4870 /* build.settings in Resources */ = {isa = PBXBuildFile; fileRef = 3070C54D16F3C537002B4870 /* build.settings */; };
-		3070C57016F3C537002B4870 /* config.lua in Resources */ = {isa = PBXBuildFile; fileRef = 3070C54E16F3C537002B4870 /* config.lua */; };
-		3070C57216F3C537002B4870 /* facebook_bkg.png in Resources */ = {isa = PBXBuildFile; fileRef = 3070C55016F3C537002B4870 /* facebook_bkg.png */; };
-		3070C57416F3C537002B4870 /* fbButton184.png in Resources */ = {isa = PBXBuildFile; fileRef = 3070C55216F3C537002B4870 /* fbButton184.png */; };
-		3070C57516F3C537002B4870 /* fbButtonOver184.png in Resources */ = {isa = PBXBuildFile; fileRef = 3070C55316F3C537002B4870 /* fbButtonOver184.png */; };
-		3070C57616F3C537002B4870 /* Icon-72.png in Resources */ = {isa = PBXBuildFile; fileRef = 3070C55416F3C537002B4870 /* Icon-72.png */; };
-		3070C57716F3C537002B4870 /* Icon-72@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 3070C55516F3C537002B4870 /* Icon-72@2x.png */; };
-		3070C57816F3C537002B4870 /* Icon-hdpi.png in Resources */ = {isa = PBXBuildFile; fileRef = 3070C55616F3C537002B4870 /* Icon-hdpi.png */; };
-		3070C57916F3C537002B4870 /* Icon-ldpi.png in Resources */ = {isa = PBXBuildFile; fileRef = 3070C55716F3C537002B4870 /* Icon-ldpi.png */; };
-		3070C57A16F3C537002B4870 /* Icon-mdpi.png in Resources */ = {isa = PBXBuildFile; fileRef = 3070C55816F3C537002B4870 /* Icon-mdpi.png */; };
-		3070C57B16F3C537002B4870 /* Icon-xhdpi.png in Resources */ = {isa = PBXBuildFile; fileRef = 3070C55916F3C537002B4870 /* Icon-xhdpi.png */; };
-		3070C57C16F3C537002B4870 /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 3070C55A16F3C537002B4870 /* Icon.png */; };
-		3070C57D16F3C537002B4870 /* Icon@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 3070C55B16F3C537002B4870 /* Icon@2x.png */; };
-		3070C58016F3C537002B4870 /* main.lua in Resources */ = {isa = PBXBuildFile; fileRef = 3070C55E16F3C537002B4870 /* main.lua */; };
 		A447B610165D72FB009EA762 /* AppCoronaDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = A447B60F165D72FB009EA762 /* AppCoronaDelegate.mm */; };
 		A447B6671666FD02009EA762 /* MainWindow-iPad.xib in Resources */ = {isa = PBXBuildFile; fileRef = A447B6641666FD02009EA762 /* MainWindow-iPad.xib */; };
 		A447B6681666FD02009EA762 /* MainWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = A447B6651666FD02009EA762 /* MainWindow.xib */; };
@@ -361,7 +346,7 @@
 				LastUpgradeCheck = 0640;
 				TargetAttributes = {
 					A484111815114F700074BD57 = {
-						DevelopmentTeam = BG2J43EA88;
+						DevelopmentTeam = Z86L7X2N6L;
 					};
 				};
 			};
@@ -407,22 +392,7 @@
 				A447B6671666FD02009EA762 /* MainWindow-iPad.xib in Resources */,
 				A447B6681666FD02009EA762 /* MainWindow.xib in Resources */,
 				A447B66A1666FD43009EA762 /* CoronaSDK3rdPartyLicenses.txt in Resources */,
-				303B9A9016E66C4700CDB84F /* Default-568h@2x.png in Resources */,
-				3070C56F16F3C537002B4870 /* build.settings in Resources */,
-				3070C57016F3C537002B4870 /* config.lua in Resources */,
-				3070C57216F3C537002B4870 /* facebook_bkg.png in Resources */,
 				303299E917737ED200DC0D82 /* CoronaResources.bundle in Resources */,
-				3070C57416F3C537002B4870 /* fbButton184.png in Resources */,
-				3070C57516F3C537002B4870 /* fbButtonOver184.png in Resources */,
-				3070C57616F3C537002B4870 /* Icon-72.png in Resources */,
-				3070C57716F3C537002B4870 /* Icon-72@2x.png in Resources */,
-				3070C57816F3C537002B4870 /* Icon-hdpi.png in Resources */,
-				3070C57916F3C537002B4870 /* Icon-ldpi.png in Resources */,
-				3070C57A16F3C537002B4870 /* Icon-mdpi.png in Resources */,
-				3070C57B16F3C537002B4870 /* Icon-xhdpi.png in Resources */,
-				3070C57C16F3C537002B4870 /* Icon.png in Resources */,
-				3070C57D16F3C537002B4870 /* Icon@2x.png in Resources */,
-				3070C58016F3C537002B4870 /* main.lua in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -534,6 +504,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
+				ENABLE_BITCODE = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -553,10 +524,11 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
-				ONLY_ACTIVE_ARCH = YES;
+				ONLY_ACTIVE_ARCH = NO;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				USER_HEADER_SEARCH_PATHS = "${SRCROOT}/CoronaEnterprise/Corona/shared/include/Corona ${SRCROOT}/CoronaEnterprise/Corona/shared/include/lua ${SRCROOT}/CoronaEnterprise/Corona/ios/include/Corona";
+				VALID_ARCHS = "arm64 armv7 armv7s i386 x86_64";
 			};
 			name = Debug;
 		};
@@ -573,6 +545,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = YES;
+				ENABLE_BITCODE = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -590,6 +563,7 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 				USER_HEADER_SEARCH_PATHS = "${SRCROOT}/CoronaEnterprise/Corona/shared/include/Corona ${SRCROOT}/CoronaEnterprise/Corona/shared/include/lua ${SRCROOT}/CoronaEnterprise/Corona/ios/include/Corona";
 				VALIDATE_PRODUCT = YES;
+				VALID_ARCHS = "arm64 armv7 armv7s i386 x86_64";
 			};
 			name = Release;
 		};
@@ -600,13 +574,7 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				DEAD_CODE_STRIPPING = NO;
 				ENABLE_BITCODE = NO;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					/Documents/FacebookSDK,
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook/sdk/ios/4.2.0",
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook/sdk/ios/4.3.0",
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook-v4/sdk/ios/4.4.0",
-				);
+				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = Prefix.pch;
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
@@ -616,12 +584,15 @@
 					"$(inherited)",
 					"\"$(SRCROOT)/CoronaEnterprise/Corona/ios/lib\"",
 				);
+				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "-all_load";
+				PRODUCT_BUNDLE_IDENTIFIER = corona.testapp;
 				PRODUCT_NAME = "${TARGET_NAME}";
-				PROVISIONING_PROFILE = "";
+				PROVISIONING_PROFILE = "660d19fa-7819-46e0-9b8f-9fb9a4978f1b";
 				SEPARATE_STRIP = YES;
 				STRIP_INSTALLED_PRODUCT = YES;
 				STRIP_STYLE = "non-global";
+				VALID_ARCHS = "arm64 armv7 armv7s i386 x86_64";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -633,13 +604,7 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				DEAD_CODE_STRIPPING = NO;
 				ENABLE_BITCODE = NO;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					/Documents/FacebookSDK,
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook/sdk/ios/4.2.0",
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook/sdk/ios/4.3.0",
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook-v4/sdk/ios/4.4.0",
-				);
+				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GCC_OPTIMIZATION_LEVEL = 2;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = Prefix.pch;
@@ -650,11 +615,13 @@
 					"\"$(SRCROOT)/CoronaEnterprise/Corona/ios/lib\"",
 				);
 				OTHER_LDFLAGS = "-all_load";
+				PRODUCT_BUNDLE_IDENTIFIER = corona.testapp;
 				PRODUCT_NAME = "${TARGET_NAME}";
-				PROVISIONING_PROFILE = "";
+				PROVISIONING_PROFILE = "660d19fa-7819-46e0-9b8f-9fb9a4978f1b";
 				SEPARATE_STRIP = YES;
 				STRIP_INSTALLED_PRODUCT = YES;
 				STRIP_STYLE = "non-global";
+				VALID_ARCHS = "arm64 armv7 armv7s i386 x86_64";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
