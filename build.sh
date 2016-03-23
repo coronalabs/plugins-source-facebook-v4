@@ -2,6 +2,9 @@
 
 path=`dirname $0`
 
+#Build Facebook from source
+sh ../sdk/ios/scripts/build_framework.sh
+
 xcodebuild -project "$path"/../../platform/mac/lua.xcodeproj -alltargets -configuration Release
 
 cd $path/ios
