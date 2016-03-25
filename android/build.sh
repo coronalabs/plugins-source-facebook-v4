@@ -37,13 +37,17 @@ SDK_PATH=$ANDROID_SDK
 ## If not provided from the command line, then attempt to fetch it from environment variable ANDROID_SDK.
 if [ ! -z "$1" ]
 then
-	SDK_PATH=$1
+	if [[ $1 != $buildAPK ]];
+	then
+		SDK_PATH=$1
+	fi
 fi
 
 # Grab the name of the Corona sample to build in, if specified
 if [ ! -z "$1" ]
 then
-	if [[ ! $1 == $buildAPK ]]; then
+	if [[ $1 != $buildAPK ]];
+	then
 		cp -R $1 ../Corona
 	fi
 fi
