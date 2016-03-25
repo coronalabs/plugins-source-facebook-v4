@@ -21,6 +21,7 @@ checkError() {
 
 script=`basename $0`
 path=`dirname $0`
+buildAPK="b"
 
 #
 # Canonicalize relative paths to absolute paths
@@ -34,18 +35,17 @@ popd > /dev/null
 SDK_PATH=$ANDROID_SDK
 ## Fetch the Android SDK path from the first command line argument.
 ## If not provided from the command line, then attempt to fetch it from environment variable ANDROID_SDK.
-#SDK_PATH=
-#if [ ! -z "$1" ]
-#then
-	#SDK_PATH=$1
-#else
-	#SDK_PATH=$ANDROID_SDK
-#fi
+if [ ! -z "$1" ]
+then
+	SDK_PATH=$1
+fi
 
 # Grab the name of the Corona sample to build in, if specified
 if [ ! -z "$1" ]
 then
-	cp -R $1 ../Corona
+	if [[ ! $1 == $buildAPK ]]; then
+		cp -R $1 ../Corona
+	fi
 fi
 
 if [ -z "$CORONA_ENTERPRISE_DIR" ]
@@ -94,3 +94,9 @@ echo "Using Corona Enterprise Dir: $CORONA_PATH"
 # Build the Test project via the Ant build system.
 ant release -D"CoronaEnterpriseDir"="$CORONA_PATH"
 checkError
+
+# Install apk to device is "b" is passed as an argument
+if [[ $1 == $buildAPK ]]; then
+    echo "installing apk to device"
+	adb install -r "bin/CoronaKoobEcafSDK4Test-release.apk"
+fi
