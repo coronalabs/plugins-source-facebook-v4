@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #Build Facebook from source
-sh ../sdk/ios/scripts/build_framework.sh
+sh ../sdk/ios/src/scripts/build_framework.sh
 
 path=`dirname $0`
 
@@ -24,7 +24,7 @@ dir=`pwd`
 path=$dir
 popd > /dev/null
 
-sh ../sdk/ios/updateFacebook.sh
+#sh ../sdk/ios/src/updateFacebook.sh
 
 #
 # Build plugin
