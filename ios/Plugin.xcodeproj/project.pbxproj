@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		305DBDEE1C9C696C009B5521 /* FBSDKShareKit in Frameworks */ = {isa = PBXBuildFile; fileRef = 305DBDED1C9C696C009B5521 /* FBSDKShareKit */; };
-		305DBDF01C9C6979009B5521 /* FBSDKCoreKit in Frameworks */ = {isa = PBXBuildFile; fileRef = 305DBDEF1C9C6979009B5521 /* FBSDKCoreKit */; };
-		305DBDF21C9C6988009B5521 /* FBSDKLoginKit in Frameworks */ = {isa = PBXBuildFile; fileRef = 305DBDF11C9C6988009B5521 /* FBSDKLoginKit */; };
 		A480721316C86B6200960127 /* IOSFBConnect.mm in Sources */ = {isa = PBXBuildFile; fileRef = A480721216C86B6200960127 /* IOSFBConnect.mm */; };
 		A480722216C8CB4100960127 /* FacebookLibrary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A480722016C8CB4100960127 /* FacebookLibrary.cpp */; };
 		A480722516C8CBB400960127 /* FBConnect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A480722316C8CBB400960127 /* FBConnect.cpp */; };
 		A480725916C9B3F500960127 /* FBConnectEvent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A480725716C9B3F500960127 /* FBConnectEvent.cpp */; };
+		E61AD8F91DB2FA0F0053A9BE /* FBSDKCoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E61AD8F61DB2FA0F0053A9BE /* FBSDKCoreKit.framework */; };
+		E61AD8FA1DB2FA0F0053A9BE /* FBSDKLoginKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E61AD8F71DB2FA0F0053A9BE /* FBSDKLoginKit.framework */; };
+		E61AD8FB1DB2FA0F0053A9BE /* FBSDKShareKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E61AD8F81DB2FA0F0053A9BE /* FBSDKShareKit.framework */; };
 		E6E8E5D81B7197F900D74245 /* CoronaFacebookDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = E6E8E5D71B7197F900D74245 /* CoronaFacebookDelegate.mm */; };
 /* End PBXBuildFile section */
 
@@ -31,9 +31,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		305DBDED1C9C696C009B5521 /* FBSDKShareKit */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = FBSDKShareKit; path = ../sdk/ios/build/FBSDKShareKit.framework/FBSDKShareKit; sourceTree = "<group>"; };
-		305DBDEF1C9C6979009B5521 /* FBSDKCoreKit */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = FBSDKCoreKit; path = ../sdk/ios/build/FBSDKCoreKit.framework/FBSDKCoreKit; sourceTree = "<group>"; };
-		305DBDF11C9C6988009B5521 /* FBSDKLoginKit */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = FBSDKLoginKit; path = ../sdk/ios/build/FBSDKLoginKit.framework/FBSDKLoginKit; sourceTree = "<group>"; };
 		A480721116C86B6200960127 /* IOSFBConnect.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = IOSFBConnect.h; path = Plugin/IOSFBConnect.h; sourceTree = "<group>"; };
 		A480721216C86B6200960127 /* IOSFBConnect.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = IOSFBConnect.mm; path = Plugin/IOSFBConnect.mm; sourceTree = "<group>"; };
 		A480722016C8CB4100960127 /* FacebookLibrary.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FacebookLibrary.cpp; path = ../shared/FacebookLibrary.cpp; sourceTree = "<group>"; };
@@ -43,6 +40,9 @@
 		A480725716C9B3F500960127 /* FBConnectEvent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FBConnectEvent.cpp; path = ../shared/FBConnectEvent.cpp; sourceTree = "<group>"; };
 		A480725816C9B3F500960127 /* FBConnectEvent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FBConnectEvent.h; path = ../shared/FBConnectEvent.h; sourceTree = "<group>"; };
 		A4E253B6166D6FB300DCDC2C /* libfacebook.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libfacebook.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		E61AD8F61DB2FA0F0053A9BE /* FBSDKCoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FBSDKCoreKit.framework; path = ../sdk/ios/4.16.1/FBSDKCoreKit.framework; sourceTree = "<group>"; };
+		E61AD8F71DB2FA0F0053A9BE /* FBSDKLoginKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FBSDKLoginKit.framework; path = ../sdk/ios/4.16.1/FBSDKLoginKit.framework; sourceTree = "<group>"; };
+		E61AD8F81DB2FA0F0053A9BE /* FBSDKShareKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FBSDKShareKit.framework; path = ../sdk/ios/4.16.1/FBSDKShareKit.framework; sourceTree = "<group>"; };
 		E6E8E5D71B7197F900D74245 /* CoronaFacebookDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CoronaFacebookDelegate.mm; path = Plugin/CoronaFacebookDelegate.mm; sourceTree = "<group>"; };
 		E6E8E5D91B71983E00D74245 /* CoronaFacebookDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CoronaFacebookDelegate.h; path = Plugin/CoronaFacebookDelegate.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -52,9 +52,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				305DBDF21C9C6988009B5521 /* FBSDKLoginKit in Frameworks */,
-				305DBDF01C9C6979009B5521 /* FBSDKCoreKit in Frameworks */,
-				305DBDEE1C9C696C009B5521 /* FBSDKShareKit in Frameworks */,
+				E61AD8FA1DB2FA0F0053A9BE /* FBSDKLoginKit.framework in Frameworks */,
+				E61AD8F91DB2FA0F0053A9BE /* FBSDKCoreKit.framework in Frameworks */,
+				E61AD8FB1DB2FA0F0053A9BE /* FBSDKShareKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -75,9 +75,9 @@
 		A480721616C86B9700960127 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				305DBDF11C9C6988009B5521 /* FBSDKLoginKit */,
-				305DBDEF1C9C6979009B5521 /* FBSDKCoreKit */,
-				305DBDED1C9C696C009B5521 /* FBSDKShareKit */,
+				E61AD8F61DB2FA0F0053A9BE /* FBSDKCoreKit.framework */,
+				E61AD8F71DB2FA0F0053A9BE /* FBSDKLoginKit.framework */,
+				E61AD8F81DB2FA0F0053A9BE /* FBSDKShareKit.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -189,6 +189,7 @@
 				COPY_PHASE_STRIP = NO;
 				ENABLE_BITCODE = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				FRAMEWORK_SEARCH_PATHS = "";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -199,7 +200,7 @@
 					"$(inherited)",
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_VERSION = "";
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
@@ -231,9 +232,10 @@
 				COPY_PHASE_STRIP = YES;
 				ENABLE_BITCODE = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				FRAMEWORK_SEARCH_PATHS = "";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_VERSION = "";
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
@@ -260,19 +262,12 @@
 				DSTROOT = /tmp/facebook.dst;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"\"$(SRCROOT)/../sdk/ios/build\"/**",
+					"\"$(SRCROOT)/../sdk/ios/src/build\"/**",
+					"$(SRCROOT)/../sdk/ios/4.16.1/**",
 				);
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook-v4/sdk/ios/4.4.0/FBSDKCoreKit.framework",
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook-v4/sdk/ios/4.4.0/FBSDKLoginKit.framework",
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook-v4/sdk/ios/4.4.0/FBSDKShareKit.framework",
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook-v4/sdk/ios/4.5.0/src/build/FBSDKShareKit.framework",
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook-v4/sdk/ios/4.5.0/src/build/FBSDKLoginKit.framework",
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook-v4/sdk/ios/4.5.0/src/build/FBSDKCoreKit.framework",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -291,19 +286,13 @@
 				DSTROOT = /tmp/facebook.dst;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"\"$(SRCROOT)/../sdk/ios/build\"/**",
+					"\"$(SRCROOT)/../sdk/ios/src/build\"/**",
+					"$(SRCROOT)/../sdk/ios/4.16.1/**",
 				);
+				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook-v4/sdk/ios/4.4.0/FBSDKCoreKit.framework",
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook-v4/sdk/ios/4.4.0/FBSDKLoginKit.framework",
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook-v4/sdk/ios/4.4.0/FBSDKShareKit.framework",
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook-v4/sdk/ios/4.5.0/src/build/FBSDKShareKit.framework",
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook-v4/sdk/ios/4.5.0/src/build/FBSDKLoginKit.framework",
-					"/Users/ajaymccaleb/Desktop/CoronaLabs/plugins-hosted/projects/facebook-v4/sdk/ios/4.5.0/src/build/FBSDKCoreKit.framework",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
