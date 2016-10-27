@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+    <string name="app_name">[YOUR ANDROID APP NAME HERE]</string>
+    <string name="facebook_app_name">[YOUR FACEBOOK DISPLAY NAME FROM PORTAL HERE]</string>
+    <string name="facebook_app_id">[YOUR FACEBOOK APP ID HERE]</string>
+</resources>

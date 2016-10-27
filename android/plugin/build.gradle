@@ -1,0 +1,53 @@
+apply plugin: 'com.android.library'
+
+android {
+    //noinspection GroovyAssignabilityCheck
+    compileSdkVersion Integer.parseInt(project.ANDROID_BUILD_SDK_VERSION)
+    //noinspection GroovyAssignabilityCheck
+    buildToolsVersion project.ANDROID_BUILD_TOOLS_VERSION
+
+    defaultConfig {
+        //noinspection GroovyAssignabilityCheck
+        minSdkVersion Integer.parseInt(project.ANDROID_BUILD_MIN_SDK_VERSION)
+        //noinspection GroovyAssignabilityCheck
+        targetSdkVersion Integer.parseInt(project.ANDROID_BUILD_TARGET_SDK_VERSION)
+        versionCode 1
+        versionName "1.0"
+    }
+}
+
+def coronaEnterpriseDir = "$rootDir/CoronaEnterprise"
+def intermediatesDir = "$buildDir/intermediates"
+def explodedAarDir = "$intermediatesDir/exploded-aar"
+def binariesDir = "$rootDir/../../../binaries/facebook-v4/plugins/2016.2932/android"
+
+task exportPluginBinariesContent {
+    def pluginName = new XmlSlurper().parse(file('src/main/AndroidManifest.xml')).@package.text()
+    copy { // Jar files
+        // Plugin Jar file
+        from("$intermediatesDir/bundles/release/") {
+            include 'classes.jar'
+            rename 'classes.jar', "${pluginName}.jar"
+        }
+        // Facebook SDK Jar file
+        from("$explodedAarDir/com.facebook.android/facebook/4.16.1/jars/") {
+            include 'classes.jar'
+            rename 'classes.jar', "facebook_sdk_4_16_1.jar"
+        }
+        into "$binariesDir"
+    }
+    copy { // Resource files
+        from "$rootDir/facebook/src/main/res/"
+        into "$binariesDir/resources/res/"
+    }
+
+    doFirst {
+        println '== exportPluginBinariesContent =='
+    }
+}
+
+dependencies {
+    compile fileTree(dir: "$coronaEnterpriseDir/Corona/android/lib/Corona/libs", include: '*.jar')
+    compile fileTree(dir: 'libs', include: '*.jar')
+    compile project(':facebook')
+}
