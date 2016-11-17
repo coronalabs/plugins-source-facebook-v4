@@ -34,6 +34,11 @@ task exportPluginBinariesContent {
             include 'classes.jar'
             rename 'classes.jar', "facebook_sdk_4_16_1.jar"
         }
+        // Bolts Jar files. These are local copies from the Maven repository.
+        // Updated jars can be found at: http://search.maven.org/#search%7Cga%7C1%7Ccom.parse.bolts
+        from('libs') {
+            include 'bolts-applinks-1.4.0.jar', 'bolts-tasks-1.4.0.jar'
+        }
         into "$binariesDir"
     }
     copy { // Resource files
@@ -48,6 +53,5 @@ task exportPluginBinariesContent {
 
 dependencies {
     compile fileTree(dir: "$coronaEnterpriseDir/Corona/android/lib/Corona/libs", include: '*.jar')
-    compile fileTree(dir: 'libs', include: '*.jar')
     compile project(':facebook')
 }
