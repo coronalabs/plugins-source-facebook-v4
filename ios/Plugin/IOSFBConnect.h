@@ -61,8 +61,9 @@ class IOSFBConnect : public FBConnect
 
 	public:
 		virtual int GetCurrentAccessToken( lua_State *L ) const;
-		virtual void Login( const char *permissions[], int numPermissions, bool attempNativeLogin ) const;
 		virtual bool IsAccessDenied() const;
+		virtual bool IsFacebookAppEnabled() const;
+		virtual void Login( const char *permissions[], int numPermissions, bool attempNativeLogin ) const;
 		virtual void Logout() const;
 		virtual void PublishInstall() const;
 		virtual void Request( lua_State *L, const char *path, const char *httpMethod, int x ) const;
@@ -78,6 +79,9 @@ class IOSFBConnect : public FBConnect
 		static int CreateLuaTableFromStringArray( lua_State *L, NSArray* array );
 		static bool IsPublishPermission( NSString *permission );
 		static bool IsShareAction( NSString *action );
+		virtual FBSDKShareDialog *newShareDialogWithCoronaConfiguration() const;
+		virtual void showSharePhotoDialogWithProperties( NSMutableArray* sharePhotosArray, NSURL *contentUrl,
+													 NSArray *peopleIds, NSString *placeId, NSString *ref ) const;
 		static FBSDKGameRequestActionType GetActionTypeFrom( NSString* actionTypeString );
 		static FBSDKGameRequestFilter GetFilterFrom( NSString* filterString );
 	

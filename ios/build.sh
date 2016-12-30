@@ -1,10 +1,13 @@
 #!/bin/bash
 
+#Build Facebook from source
+sh ../sdk/ios/src/scripts/build_framework.sh
+
 path=`dirname $0`
 
 #
 # Checks exit value for error
-# 
+#
 checkError() {
     if [ $? -ne 0 ]
     then
@@ -13,17 +16,19 @@ checkError() {
     fi
 }
 
-# 
+#
 # Canonicalize relative paths to absolute paths
-# 
+#
 pushd $path > /dev/null
 dir=`pwd`
 path=$dir
 popd > /dev/null
 
-# 
+#sh ../sdk/ios/src/updateFacebook.sh
+
+#
 # Build plugin
-# 
+#
 CONFIG=Release
 TARGET=facebook
 BINARY=lib$TARGET.a

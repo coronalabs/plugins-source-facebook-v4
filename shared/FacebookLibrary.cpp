@@ -50,6 +50,7 @@ class FacebookLibrary
 
 	public:
 		static int getCurrentAccessToken( lua_State *L );
+		static int isFacebookAppEnabled( lua_State *L );
 		static int login( lua_State *L );
 		static int logout( lua_State *L );
 		static int publishInstall( lua_State *L );
@@ -124,6 +125,7 @@ FacebookLibrary::Open( lua_State *L )
 	const luaL_Reg kVTable[] =
 	{
 		{ "getCurrentAccessToken", getCurrentAccessToken },
+		{ "isFacebookAppEnabled", isFacebookAppEnabled },
 		{ "login", login },
 		{ "logout", logout },
 		{ "publishInstall", publishInstall },
@@ -185,6 +187,18 @@ FacebookLibrary::getCurrentAccessToken( lua_State *L )
 	return connect->GetCurrentAccessToken( L );
 }
 
+// [Lua] facebook.isFacebookAppEnabled()
+int
+FacebookLibrary::isFacebookAppEnabled( lua_State *L )
+{
+	Self *library = ToLibrary( L );
+	FBConnect *connect = library->GetFBConnect();
+	
+	lua_pushboolean( L, connect->IsFacebookAppEnabled() );
+	
+	return 1;
+}
+	
 // [Lua] facebook.login( [listener,] [permissions] )
 // TODO: Refactor facebook.login) to accept a params table.
 int
